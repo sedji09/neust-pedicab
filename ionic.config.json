@@ -1,0 +1,7 @@
+{
+  "name": "neust-bike",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
