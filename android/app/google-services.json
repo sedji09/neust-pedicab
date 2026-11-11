@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "9559028938",
+    "project_id": "neust-pedicab-140d4",
+    "storage_bucket": "neust-pedicab-140d4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9559028938:android:cbc671f9bae99ae0c1b033",
+        "android_client_info": {
+          "package_name": "ph.edu.neust.bikego"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "9559028938-46qtoc05a6vvkgndbtlof4ht1qhhphfv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZfjn1YSyibHfduBPGmEz_gU5PEgN5ggs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "9559028938-46qtoc05a6vvkgndbtlof4ht1qhhphfv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9559028938:android:5f6e71842fd77afcc1b033",
+        "android_client_info": {
+          "package_name": "ph.edu.neust.bikego.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "9559028938-46qtoc05a6vvkgndbtlof4ht1qhhphfv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZfjn1YSyibHfduBPGmEz_gU5PEgN5ggs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "9559028938-46qtoc05a6vvkgndbtlof4ht1qhhphfv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

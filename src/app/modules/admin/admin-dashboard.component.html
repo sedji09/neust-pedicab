@@ -1,0 +1,1155 @@
+<div class="admin-container">
+
+  <!-- ==================== DESKTOP & TABLET TOP NAVIGATION BAR ==================== -->
+  <nav class="admin-desktop-tab-bar">
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'overview'" (click)="currentTab = 'overview'">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <span>Dashboard</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'locations'" (click)="currentTab = 'locations'">
+      <ion-icon name="map-outline"></ion-icon>
+      <span>Campus GPS & Locations</span>
+      <span class="adt-badge" *ngIf="pendingLocations.length">{{ pendingLocations.length }}</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'bicycles'" (click)="currentTab = 'bicycles'">
+      <ion-icon name="bicycle-outline"></ion-icon>
+      <span>Bicycles Fleet</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'trips'" (click)="currentTab = 'trips'">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <span>Trips Log</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'demand'" (click)="currentTab = 'demand'">
+      <ion-icon name="bar-chart-outline"></ion-icon>
+      <span>Heatmap & Demand</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'maintenance'" (click)="currentTab = 'maintenance'">
+      <ion-icon name="build-outline"></ion-icon>
+      <span>Maintenance</span>
+      <span class="adt-badge badge-alert" *ngIf="maintenanceBicycles > 0">{{ maintenanceBicycles }}</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'zones'" (click)="currentTab = 'zones'">
+      <ion-icon name="layers-outline"></ion-icon>
+      <span>Geofences</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'announcements'" (click)="currentTab = 'announcements'">
+      <ion-icon name="megaphone-outline"></ion-icon>
+      <span>Notices</span>
+    </button>
+    <button type="button" class="adt-btn" [class.is-active]="currentTab === 'users'" (click)="currentTab = 'users'">
+      <ion-icon name="people-outline"></ion-icon>
+      <span>Users</span>
+    </button>
+  </nav>
+
+  <!-- ==================== TAB 1: OVERVIEW ==================== -->
+  <div *ngIf="currentTab === 'overview'" class="tab-page ion-padding">
+    
+    <!-- Admin Top Banner -->
+    <div class="admin-top-banner">
+      <div class="banner-meta">
+        <span class="banner-role-tag">SYSTEM ADMINISTRATOR</span>
+        <h2 class="admin-name">{{ authService.currentUser.fullName || 'System Administrator' }}</h2>
+        <span class="admin-unit">Logistics, Fleet Operations & Safety Management</span>
+      </div>
+      <div class="admin-badge-circle">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+      </div>
+    </div>
+
+    <!-- Summary Metrics (9 KPIs) -->
+    <div class="admin-metrics-grid">
+      <div class="a-metric-card" (click)="currentTab = 'bicycles'">
+        <span class="m-val">{{ totalBicycles }}</span>
+        <span class="m-title">Total Bicycles</span>
+      </div>
+      <div class="a-metric-card m-avail" (click)="currentTab = 'bicycles'">
+        <span class="m-val">{{ availableBicycles }}</span>
+        <span class="m-title">Available</span>
+      </div>
+      <div class="a-metric-card m-active" (click)="currentTab = 'trips'">
+        <span class="m-val">{{ activeBicycles }}</span>
+        <span class="m-title">Active</span>
+      </div>
+      <div class="a-metric-card m-maint" (click)="currentTab = 'maintenance'">
+        <span class="m-val">{{ maintenanceBicycles }}</span>
+        <span class="m-title">Maintenance</span>
+      </div>
+      <div class="a-metric-card" (click)="currentTab = 'zones'">
+        <span class="m-val">{{ (stateService.designatedZones$ | async)?.length || 6 }}</span>
+        <span class="m-title">Geofence Zones</span>
+      </div>
+      <div class="a-metric-card" (click)="currentTab = 'users'">
+        <span class="m-val">{{ filteredStudents.length }}</span>
+        <span class="m-title">Students</span>
+      </div>
+      <div class="a-metric-card" (click)="currentTab = 'users'">
+        <span class="m-val">{{ driverUsers.length }}</span>
+        <span class="m-title">Drivers</span>
+      </div>
+      <div class="a-metric-card m-ongoing" (click)="currentTab = 'trips'">
+        <span class="m-val">{{ ongoingTrips }}</span>
+        <span class="m-title">Ongoing Trips</span>
+      </div>
+      <div class="a-metric-card" (click)="currentTab = 'trips'">
+        <span class="m-val">{{ completedTrips }}</span>
+        <span class="m-title">Completed Trips</span>
+      </div>
+      <div class="a-metric-card m-waiting" (click)="currentTab = 'demand'">
+        <span class="m-val">{{ waitingPassengersCount }}</span>
+        <span class="m-title">Waiting Queue</span>
+      </div>
+    </div>
+
+    <!-- Feature 5: Passenger Demand Heatmap Alert & Controls -->
+    <div class="demand-alert-banner">
+      <div class="dab-meta">
+        <ion-icon name="flame-outline" class="flame-icon"></ion-icon>
+        <div>
+          <strong>Campus Passenger Demand: {{ demandMetrics.peakSeverity | uppercase }}</strong>
+          <span>{{ demandMetrics.totalWaiting }} total waiting • Hotspot: {{ demandMetrics.highestDemandLocation }} ({{ demandMetrics.highestDemandCount }} waiting)</span>
+        </div>
+      </div>
+      <button class="btn-heatmap-toggle" [class.is-on]="showHeatmap" (click)="toggleHeatmap()">
+        <ion-icon name="flame-outline"></ion-icon>
+        <span>Heatmap: {{ showHeatmap ? 'ON' : 'OFF' }}</span>
+      </button>
+    </div>
+
+    <!-- Feature: Pedicab Fare & Tariff Management Card (Admin Configuration) -->
+    <div class="admin-fare-control-card">
+      <div class="afc-header">
+        <div class="afc-icon-badge">
+          <ion-icon name="cash-outline"></ion-icon>
+        </div>
+        <div class="afc-titles">
+          <h3>Pamasahe at Taripa ng Pedicab (Campus Fare Settings)</h3>
+          <span>I-set ang opisyal na bayad sa bawat pasahero sa loob ng NEUST Sumacab</span>
+        </div>
+        <div class="afc-current-rate-pill">
+          <span class="rate-sub">Kasalukuyang Rate</span>
+          <strong class="rate-val">₱{{ currentFarePerHead }}.00</strong>
+          <span class="rate-unit">kada pasahero</span>
+        </div>
+      </div>
+
+      <div class="afc-body">
+        <div class="afc-form-row">
+          <div class="afc-input-group">
+            <span class="afc-currency-prefix">₱</span>
+            <input
+              type="number"
+              class="afc-fare-input"
+              [(ngModel)]="editFareInput"
+              min="1"
+              max="100"
+              placeholder="10" />
+            <span class="afc-unit-label">/ head</span>
+          </div>
+
+          <button type="button" class="btn-save-fare" (click)="updateFareSettings()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <span>I-save ang Bagong Pamasahe</span>
+          </button>
+        </div>
+
+        <div class="afc-presets-row">
+          <span class="presets-label">Mabilisang Presets:</span>
+          <button type="button" class="preset-btn" [class.is-active]="editFareInput === 10" (click)="updateFareSettings(10)">₱10 (Standard)</button>
+          <button type="button" class="preset-btn" [class.is-active]="editFareInput === 12" (click)="updateFareSettings(12)">₱12</button>
+          <button type="button" class="preset-btn" [class.is-active]="editFareInput === 15" (click)="updateFareSettings(15)">₱15</button>
+          <button type="button" class="preset-btn" [class.is-active]="editFareInput === 20" (click)="updateFareSettings(20)">₱20</button>
+        </div>
+
+        <div class="afc-notice-box">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <span>Awtomatikong mag-a-update ang kalkulasyon ng pasahero (1 Pax = ₱{{ currentFarePerHead }}, 2 Pax = ₱{{ currentFarePerHead * 2 }}, 3 Pax = ₱{{ currentFarePerHead * 3 }}, 4 Pax = ₱{{ currentFarePerHead * 4 }}) sa buong mobile app sa real-time.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Campus Map Section with Zones & Heatmap -->
+    <div class="section-container">
+      <div class="section-heading-row">
+        <div>
+          <h3 class="section-title">Campus Fleet & Geofence Monitoring</h3>
+          <span class="section-sub">Real-Time Leaflet GPS, Designated Zones & Heatmap</span>
+        </div>
+      </div>
+
+      <app-campus-map
+        [defaultMode]="'leaflet'"
+        [bicycles]="(stateService.bicycles$ | async) || []"
+        [locations]="(stateService.locations$ | async) || []"
+        [designatedZones]="(stateService.designatedZones$ | async) || []"
+        [showHeatmap]="showHeatmap"
+        [heatPoints]="demandHeatPoints"
+        [showHeaderControls]="true"
+        [compactHeight]="false">
+      </app-campus-map>
+    </div>
+
+    <!-- Quick Navigation Shortcuts -->
+    <div class="admin-quick-links">
+      <button class="a-quick-btn" (click)="currentTab = 'zones'">
+        <ion-icon name="radio-outline"></ion-icon>
+        <span>Geofence Zones</span>
+      </button>
+      <button class="a-quick-btn" (click)="currentTab = 'demand'">
+        <ion-icon name="bar-chart-outline"></ion-icon>
+        <span>Demand Analytics</span>
+      </button>
+      <button class="a-quick-btn" (click)="currentTab = 'maintenance'">
+        <ion-icon name="build-outline"></ion-icon>
+        <span>Maintenance ({{ maintenanceBicycles }})</span>
+      </button>
+      <button class="a-quick-btn" (click)="isNewAnnouncementModalOpen = true">
+        <ion-icon name="megaphone-outline"></ion-icon>
+        <span>Broadcast Notice</span>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ==================== TAB 2: BICYCLE MANAGEMENT ==================== -->
+  <div *ngIf="currentTab === 'bicycles'" class="tab-page ion-padding">
+    <div class="section-header-action">
+      <div class="page-title-group">
+        <h2>Fleet Management</h2>
+        <p>Register new shuttles, assign drivers, and check capacities.</p>
+      </div>
+      <button class="btn-primary-add" (click)="isNewBikeModalOpen = true">
+        <ion-icon name="add-outline"></ion-icon> Register Bicycle
+      </button>
+    </div>
+
+    <div class="fleet-cards-list">
+      <div *ngFor="let bike of (stateService.bicycles$ | async)" class="fleet-bike-card">
+        <div class="f-card-top">
+          <div class="f-bike-id-box">
+            <span class="f-bike-number">{{ bike.bikeNumber }}</span>
+            <span class="f-capacity-pill">Capacity: {{ bike.maxCapacity }} Seats</span>
+          </div>
+          <span class="f-status-badge" [ngClass]="'badge-' + bike.status">
+            {{ bike.status | uppercase }}
+          </span>
+        </div>
+
+        <div class="f-card-body">
+          <img [src]="bike.driverPhoto" class="f-driver-photo" [alt]="bike.driverName" />
+          <div class="f-meta">
+            <strong>Driver: {{ bike.driverName }}</strong>
+            <span class="f-sub">Contact: {{ bike.driverPhone }}</span>
+            <span class="f-sub">Load: {{ bike.passengerCount }}/{{ bike.maxCapacity }} Passengers</span>
+            <span class="f-sub">Current: {{ bike.currentLocation.stationName || 'Narra Ave' }}</span>
+          </div>
+        </div>
+
+        <div class="f-card-actions">
+          <button 
+            class="btn-f-action" 
+            [disabled]="bike.status === 'maintenance'"
+            (click)="stateService.setBicycleStatus(bike.bikeNumber, bike.status === 'offline' ? 'available' : 'offline')">
+            {{ bike.status === 'offline' ? 'Bring Online' : 'Set Offline' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 3: TRIP MONITORING ==================== -->
+  <div *ngIf="currentTab === 'trips'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>Trip Monitoring & Audit</h2>
+      <p>Real-time surveillance of active and historical campus trips.</p>
+    </div>
+
+    <div class="search-input-box">
+      <ion-icon name="search-outline"></ion-icon>
+      <input 
+        type="text" 
+        [(ngModel)]="tripSearchQuery" 
+        placeholder="Search by trip number, bike, or driver..." 
+        class="search-input" />
+    </div>
+
+    <div class="trips-monitoring-list">
+      <div *ngFor="let trip of filteredTrips" class="trip-monitor-card">
+        <div class="tm-top">
+          <div>
+            <strong class="tm-trip-num">{{ trip.tripNumber }}</strong>
+            <span class="tm-time">{{ trip.startTime | date:'short' }}</span>
+          </div>
+          <span class="tm-status" [class.tm-active]="trip.status === 'active'">
+            {{ trip.status | uppercase }}
+          </span>
+        </div>
+
+        <div class="tm-route">
+          <span>{{ trip.pickupLocation }}</span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ trip.destination }}</span>
+        </div>
+
+        <div class="tm-footer">
+          <span>Bicycle: <strong>{{ trip.bicycleNumber }}</strong></span>
+          <span>Driver: <strong>{{ trip.driverName }}</strong></span>
+          <span>Load: <strong>{{ trip.passengerCount }}/{{ trip.maxCapacity }}</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 4: DEMAND ANALYTICS ==================== -->
+  <div *ngIf="currentTab === 'demand'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>Passenger Demand Analytics</h2>
+      <p>Live station queue counts, incoming bicycle seats, and peak-hour metrics.</p>
+    </div>
+
+    <!-- Demand Bar Chart Section -->
+    <div class="demand-chart-card">
+      <h3 class="card-subtitle">Real-Time Waiting Passengers Per Location</h3>
+      <div class="bar-chart-container">
+        <div *ngFor="let loc of (stateService.locations$ | async)" class="bar-row">
+          <div class="bar-label-box">
+            <span class="bar-code">{{ loc.code }}</span>
+            <span class="bar-name">{{ loc.buildingNumber }}</span>
+          </div>
+          <div class="bar-track">
+            <div 
+              class="bar-fill" 
+              [style.width.%]="(loc.waitingCount / 15) * 100"
+              [class.fill-high]="loc.waitingCount > 8">
+            </div>
+          </div>
+          <span class="bar-count-val">{{ loc.waitingCount }} waiting</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Peak Hour Analysis -->
+    <div class="peak-hour-summary-card">
+      <div class="peak-header">
+        <ion-icon name="time-outline"></ion-icon>
+        <h4>Campus Peak Hour Analysis</h4>
+      </div>
+      <div class="peak-insights">
+        <div class="insight-row">
+          <span class="time-slot">08:00 AM - 09:30 AM</span>
+          <span class="peak-desc"><strong>Morning Entry Peak:</strong> Heavy demand from Main Gate inbound to CICT and Engineering.</span>
+        </div>
+        <div class="insight-row">
+          <span class="time-slot">11:30 AM - 01:00 PM</span>
+          <span class="peak-desc"><strong>Lunch Peak:</strong> Moderate traffic toward NEUST Mart and Hostel cafeteria.</span>
+        </div>
+        <div class="insight-row">
+          <span class="time-slot">04:30 PM - 06:30 PM</span>
+          <span class="peak-desc"><strong>Dismissal Peak:</strong> Highest passenger competition outbound toward Main Gate.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== TAB: GEOFENCING & DESIGNATED ZONES (Feature 3) ==================== -->
+  <div *ngIf="currentTab === 'zones'" class="tab-page ion-padding">
+    <div class="section-header-action">
+      <div class="page-title-group">
+        <h2>Geofencing & Designated Zones</h2>
+        <p>Configure permitted pickup bays, drop-off terminals, and restricted sectors.</p>
+      </div>
+      <button class="btn-primary-add" (click)="isNewZoneModalOpen = true">
+        <ion-icon name="add-outline"></ion-icon> Add Zone
+      </button>
+    </div>
+
+    <!-- Active Campus Zones List -->
+    <div class="zones-cards-grid">
+      <div *ngFor="let zone of (stateService.designatedZones$ | async)" class="zone-admin-card" [class.is-zone-disabled]="!zone.isEnabled" [class.is-zone-restricted]="zone.type === 'restricted'">
+        <div class="zc-header">
+          <div class="zc-title-group">
+            <span class="zc-type-pill" [class.type-restricted]="zone.type === 'restricted'">
+              {{ zone.type | uppercase }}
+            </span>
+            <h3 class="zc-name">{{ zone.name }}</h3>
+          </div>
+          <div class="zc-toggle-box">
+            <button class="btn-zone-toggle" [class.zone-on]="zone.isEnabled" (click)="toggleZone(zone.id)">
+              {{ zone.isEnabled ? 'ACTIVE' : 'MUTED' }}
+            </button>
+            <button class="btn-zone-delete" (click)="deleteZone(zone.id)" title="Remove Zone">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <p class="zc-desc">{{ zone.description }}</p>
+
+        <div class="zc-meta-row">
+          <div class="zc-meta-item">
+            <span class="lbl">Radius</span>
+            <strong>{{ zone.radiusMeters }} meters</strong>
+          </div>
+          <div class="zc-meta-item">
+            <span class="lbl">GPS Center</span>
+            <strong>{{ zone.center.lat }}, {{ zone.center.lng }}</strong>
+          </div>
+          <div class="zc-meta-item">
+            <span class="lbl">Capacity</span>
+            <strong>{{ zone.capacity || 4 }} shuttles</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 5: MAINTENANCE ==================== -->
+  <div *ngIf="currentTab === 'maintenance'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>Bicycle Maintenance Operations</h2>
+      <p>Inspect driver failure submissions and resolve work orders.</p>
+    </div>
+
+    <div class="admin-maintenance-list">
+      <div *ngFor="let report of (stateService.maintenance$ | async)" class="a-maint-card">
+        <div class="am-top">
+          <span class="am-num">{{ report.reportNumber }}</span>
+          <span class="am-badge" [ngClass]="'am-' + report.status">
+            {{ report.status | uppercase }}
+          </span>
+        </div>
+
+        <div class="am-body">
+          <div class="am-meta">
+            <h4>{{ report.issueType }} ({{ report.bicycleNumber }})</h4>
+            <span class="am-driver">Reported by: {{ report.driverName }}</span>
+            <p class="am-desc">{{ report.description }}</p>
+          </div>
+          <div *ngIf="report.photoUrl" class="am-photo-wrap">
+            <img [src]="report.photoUrl" alt="Damage Photo" />
+          </div>
+        </div>
+
+        <div class="am-footer-actions">
+          <span class="am-time">{{ report.reportedAt | date:'medium' }}</span>
+          <button class="btn-review-m" (click)="openMaintenanceReview(report)">
+            Manage & Resolve
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 6: CAMPUS STATIONS & GPS MAPPING (Feature 3) ==================== -->
+  <div *ngIf="currentTab === 'locations'" class="tab-page ion-padding">
+    <div class="section-header-action">
+      <div class="page-title-group">
+        <h2>Campus Location & Station Management</h2>
+        <p>Suriin at aprubahan ang mga GPS coordinates na naitala ng mga rider, at pamahalaan ang direktoryo ng mga gusali sa NEUST Sumacab.</p>
+      </div>
+      <button class="btn-primary-add" (click)="openDirectRegisterModal()">
+        <ion-icon name="add-outline"></ion-icon> Register New Location
+      </button>
+    </div>
+
+    <!-- Summary Metrics Row -->
+    <div class="loc-summary-metrics-grid">
+      <div class="lsm-card" (click)="locationViewTab = 'pending'" [class.is-active]="locationViewTab === 'pending'">
+        <div class="lsm-icon icon-pending">
+          <ion-icon name="time-outline"></ion-icon>
+        </div>
+        <div class="lsm-info">
+          <span class="lsm-val">{{ pendingLocations.length }}</span>
+          <span class="lsm-lbl">Pending Proposals</span>
+        </div>
+        <span class="lsm-badge-pulse" *ngIf="pendingLocations.length">Needs Review</span>
+      </div>
+
+      <div class="lsm-card" (click)="locationViewTab = 'directory'" [class.is-active]="locationViewTab === 'directory'">
+        <div class="lsm-icon icon-approved">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+        </div>
+        <div class="lsm-info">
+          <span class="lsm-val">{{ approvedLocations.length }}</span>
+          <span class="lsm-lbl">Approved Buildings</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segment Switcher -->
+    <div class="admin-segment-nav">
+      <button class="admin-seg-btn" [class.is-active]="locationViewTab === 'pending'" (click)="locationViewTab = 'pending'">
+        <ion-icon name="time-outline"></ion-icon>
+        <span>Pending Approvals ({{ pendingLocations.length }})</span>
+        <span class="seg-dot-alert" *ngIf="pendingLocations.length"></span>
+      </button>
+      <button class="admin-seg-btn" [class.is-active]="locationViewTab === 'directory'" (click)="locationViewTab = 'directory'">
+        <ion-icon name="school-outline"></ion-icon>
+        <span>Approved Directory ({{ approvedLocations.length }})</span>
+      </button>
+    </div>
+
+    <!-- VIEW 1: PENDING APPROVALS LIST (Feature 3) -->
+    <div *ngIf="locationViewTab === 'pending'" class="admin-pending-locations-view">
+      <div *ngIf="pendingLocations.length; else noPendingLocs" class="pending-proposals-list">
+        <div *ngFor="let loc of pendingLocations" class="admin-proposal-card">
+          <div class="apc-head">
+            <div class="apc-title-col">
+              <span class="apc-cat-pill">{{ loc.category | uppercase }}</span>
+              <h3 class="apc-name">{{ loc.name }}</h3>
+              <span class="apc-bldg" *ngIf="loc.buildingNumber">{{ loc.buildingNumber }}</span>
+            </div>
+            <div class="apc-badge-pending">
+              <span>⏳ Hinihintay ang Approval</span>
+            </div>
+          </div>
+
+          <p class="apc-desc" *ngIf="loc.description">{{ loc.description }}</p>
+
+          <div class="apc-details-grid">
+            <div class="apc-detail-item">
+              <span class="apc-d-lbl">GPS Coordinates:</span>
+              <strong>{{ loc.coordinates.lat }}, {{ loc.coordinates.lng }}</strong>
+            </div>
+            <div class="apc-detail-item" *ngIf="loc.gpsAccuracy">
+              <span class="apc-d-lbl">Device Accuracy:</span>
+              <strong class="text-emerald">±{{ loc.gpsAccuracy }}m</strong>
+            </div>
+            <div class="apc-detail-item">
+              <span class="apc-d-lbl">Nagsukat (Rider):</span>
+              <strong>{{ loc.submittedBy || 'Campus Rider' }}</strong>
+            </div>
+            <div class="apc-detail-item">
+              <span class="apc-d-lbl">Petsa:</span>
+              <strong>{{ (loc.submittedAt | date:'mediumDate') || 'Kamakailan' }}</strong>
+            </div>
+          </div>
+
+          <!-- Stopping Point Separation Info (Feature 5) -->
+          <div class="apc-stopping-point-note" *ngIf="loc.pickupCoordinates">
+            <ion-icon name="pin-outline"></ion-icon>
+            <span>Approved Stopping Point: Lat {{ loc.pickupCoordinates.lat }}, Lng {{ loc.pickupCoordinates.lng }} (kalsada)</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="apc-actions-row">
+            <button class="btn-apc-review" (click)="openReviewModal(loc)">
+              <ion-icon name="map-outline"></ion-icon> Suriin at I-adjust sa Mapa
+            </button>
+            <button class="btn-apc-quick-approve" (click)="openReviewModal(loc)">
+              <ion-icon name="checkmark-circle-outline"></ion-icon> Aprubahan
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noPendingLocs>
+        <div class="admin-empty-box">
+          <ion-icon name="checkmark-circle-outline" class="icon-big-green"></ion-icon>
+          <h4>Walang Pending Proposals</h4>
+          <p>Lahat ng mga naitalang lokasyon ng mga rider ay nasuri at naaprubahan na.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- VIEW 2: APPROVED DIRECTORY (Feature 4) -->
+    <div *ngIf="locationViewTab === 'directory'" class="admin-directory-locations-view">
+      <!-- Search & Category Filter Row -->
+      <div class="admin-dir-filters-row">
+        <div class="admin-search-input-wrap">
+          <ion-icon name="search-outline"></ion-icon>
+          <input
+            type="text"
+            placeholder="Hanapin ang gusali o code (hal. CICT, Library, Gym)..."
+            [(ngModel)]="locationSearchQuery" />
+        </div>
+
+        <div class="admin-cat-filter-wrap">
+          <select [(ngModel)]="locationCategoryFilter" class="admin-filter-select">
+            <option value="all">Lahat ng Kategorya</option>
+            <option value="academic">Academic (Classrooms)</option>
+            <option value="administrative">Administrative</option>
+            <option value="services">Services</option>
+            <option value="recreation">Recreation</option>
+            <option value="gate">Gate & Terminal</option>
+            <option value="facility">Facility</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="locations-table-list">
+        <div *ngFor="let loc of filteredAdminLocations" class="loc-manage-card">
+          <div class="loc-m-top">
+            <div class="loc-m-code-box">
+              <span class="loc-m-cat-tag">{{ loc.category | uppercase }}</span>
+              <strong class="loc-m-name">{{ loc.name }}</strong>
+              <span class="loc-m-num" *ngIf="loc.buildingNumber">{{ loc.buildingNumber }}</span>
+            </div>
+            <div class="loc-m-right-actions">
+              <button type="button" class="btn-loc-edit" (click)="openReviewModal(loc)" title="Edit Coordinates">
+                <ion-icon name="map-outline"></ion-icon> Edit
+              </button>
+              <button type="button" class="btn-loc-deact" (click)="deactivateLocation(loc)" title="Deactivate">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+
+          <p class="loc-m-desc">{{ loc.description || 'Opisyal na pasilidad sa loob ng NEUST Sumacab Campus.' }}</p>
+
+          <div class="loc-m-footer">
+            <div class="loc-gps-text">
+              <ion-icon name="location-outline"></ion-icon>
+              <span>Lat: {{ loc.coordinates.lat }} • Lng: {{ loc.coordinates.lng }}</span>
+            </div>
+            <div class="loc-toggles-inline">
+              <label class="toggle-lbl">
+                <span>Pickup</span>
+                <ion-toggle [checked]="loc.isPickupActive" (ionChange)="toggleStationPickup(loc)"></ion-toggle>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN REVIEW & ADJUST PIN MODAL (Feature 3 & 5) ==================== -->
+  <ion-modal [isOpen]="isReviewLocModalOpen" (didDismiss)="isReviewLocModalOpen = false" [initialBreakpoint]="0.92" [breakpoints]="[0, 0.92]">
+    <ng-template>
+      <div class="admin-review-modal-container" *ngIf="selectedLocForReview as rloc">
+        <div class="arm-header">
+          <div>
+            <span class="arm-sub">ADMINISTRATIVE LOCATION REVIEW</span>
+            <h3>{{ rloc.name }}</h3>
+          </div>
+          <button type="button" class="btn-arm-close" (click)="isReviewLocModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="arm-scrollable">
+          <!-- Coordinates & Accuracy Info -->
+          <div class="arm-info-banner">
+            <div class="aib-item">
+              <span>Building Lat:</span>
+              <strong>{{ reviewAdjustedLat }}</strong>
+            </div>
+            <div class="aib-item">
+              <span>Building Lng:</span>
+              <strong>{{ reviewAdjustedLng }}</strong>
+            </div>
+            <div class="aib-item" *ngIf="rloc.gpsAccuracy">
+              <span>Captured Accuracy:</span>
+              <strong>±{{ rloc.gpsAccuracy }}m</strong>
+            </div>
+            <div class="aib-item">
+              <span>Submitted By:</span>
+              <strong>{{ rloc.submittedBy || 'Rider' }}</strong>
+            </div>
+          </div>
+
+          <!-- Interactive Map to Adjust Pin -->
+          <div class="arm-map-section">
+            <div class="ams-head">
+              <strong>I-adjust ang Map Pin kung kinakailangan:</strong>
+              <span>I-drag ang pin sa eksaktong entrance o kalsada</span>
+            </div>
+            <div class="ams-map-box">
+              <app-campus-map
+                *ngIf="isReviewLocModalOpen"
+                [defaultMode]="'leaflet'"
+                [compactHeight]="true"
+                [showHeaderControls]="false"
+                [customPickupPin]="reviewPinPreview"
+                [enableCustomPickupPin]="true"
+                (pickupPinChanged)="onReviewPinChanged($event)"
+                [bicycles]="[]"
+                [locations]="(stateService.locations$ | async) || []">
+              </app-campus-map>
+            </div>
+          </div>
+
+          <!-- Separate Stopping Point Input (Feature 5) -->
+          <div class="arm-stopping-box">
+            <h4>Separate Stopping Point (Kalsada)</h4>
+            <p>Kung ang gusali ay malayo sa kalsada, itakda ang pickup/dropoff stopping coordinates:</p>
+            <div class="asb-inputs-row">
+              <div class="asb-field">
+                <label>Stopping Lat</label>
+                <input type="number" step="0.000001" [(ngModel)]="reviewAdjustedPickupLat" />
+              </div>
+              <div class="asb-field">
+                <label>Stopping Lng</label>
+                <input type="number" step="0.000001" [(ngModel)]="reviewAdjustedPickupLng" />
+              </div>
+              <button type="button" class="btn-use-pin-stop" (click)="reviewAdjustedPickupLat = reviewAdjustedLat; reviewAdjustedPickupLng = reviewAdjustedLng">
+                Use Current Pin
+              </button>
+            </div>
+          </div>
+
+          <!-- Rejection Reason Input (Only needed if rejecting) -->
+          <div class="arm-reject-box">
+            <label>Dahilan ng Rejection (kung tatanggihan):</label>
+            <input
+              type="text"
+              class="input-reject-reason"
+              placeholder="Hal. Nasa labas ng kalsada, duplicate location, mali ang pangalan"
+              [(ngModel)]="reviewRejectionReason" />
+          </div>
+        </div>
+
+        <div class="arm-footer-actions">
+          <button type="button" class="btn-arm-reject" (click)="rejectSelectedLocation()">
+            <ion-icon name="close-circle-outline"></ion-icon>
+            <span>Tanggihan (Reject)</span>
+          </button>
+          <button type="button" class="btn-arm-approve" (click)="approveSelectedLocation()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            <span>Aprubahan (Approve)</span>
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ==================== ADMIN DIRECT REGISTER & GPS MAPPING MODAL (FULLY RESPONSIVE ACROSS ALL DEVICES) ==================== -->
+  <ion-modal
+    [isOpen]="isDirectRegisterModalOpen"
+    (didDismiss)="isDirectRegisterModalOpen = false"
+    class="admin-mapping-modal"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]">
+    <ng-template>
+      <div class="admin-mapping-modal-container">
+        
+        <!-- Header -->
+        <div class="amm-header">
+          <div class="amm-title-col">
+            <span class="amm-badge">NEUST SUMACAB • CAMPUS GPS MAPPING</span>
+            <h3>Mag-map at Magrehistro ng Gusali sa Campus</h3>
+          </div>
+          <button type="button" class="btn-amm-close" (click)="isDirectRegisterModalOpen = false" title="Isara">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Body: 2-Column Responsive Grid on Desktop / Stacks on Mobile -->
+        <div class="amm-body-grid">
+          
+          <!-- LEFT COLUMN: Interactive Leaflet Map & GPS Detection -->
+          <div class="amm-map-column">
+            
+            <!-- GPS Status Bar -->
+            <div class="amm-gps-strip">
+              <div class="amm-gps-info">
+                <div class="amm-gps-dot" [class.is-detecting]="isGpsDetecting"></div>
+                <div class="amm-gps-labels">
+                  <strong>Smartphone / Device GPS Detection</strong>
+                  <span>{{ isGpsDetecting ? 'Binabasa ang satellite coordinates...' : 'Aktibong GPS Coordinates ng Campus' }}</span>
+                </div>
+              </div>
+              <button type="button" class="btn-detect-gps" (click)="triggerAdminGpsDetection()" [disabled]="isGpsDetecting">
+                <ion-icon name="locate-outline"></ion-icon>
+                <span>{{ isGpsDetecting ? 'Binabasa...' : 'Detect GPS' }}</span>
+              </button>
+            </div>
+
+            <!-- Readouts: Lat, Lng, Accuracy, Boundary Status -->
+            <div class="amm-coords-readout">
+              <div class="coord-cell">
+                <span class="c-lbl">LATITUDE</span>
+                <strong>{{ adminNewLocLat }}</strong>
+              </div>
+              <div class="coord-cell">
+                <span class="c-lbl">LONGITUDE</span>
+                <strong>{{ adminNewLocLng }}</strong>
+              </div>
+              <div class="coord-cell">
+                <span class="c-lbl">ACCURACY</span>
+                <strong class="text-green">±{{ adminGpsAccuracy || 4 }}m</strong>
+              </div>
+              <div class="coord-cell cell-status">
+                <span class="c-lbl">BOUNDARY</span>
+                <strong *ngIf="isAdminLocInsideCampus" class="text-inside">✓ Inside Campus</strong>
+                <strong *ngIf="!isAdminLocInsideCampus" class="text-outside">⚠ Labas ng Campus</strong>
+              </div>
+            </div>
+
+            <!-- Interactive Campus Map Frame -->
+            <div class="amm-map-frame">
+              <div class="amm-map-hint-bar">
+                <ion-icon name="map-outline"></ion-icon>
+                <span>I-click o i-drag ang pin sa eksaktong entrance ng gusali o kalsada</span>
+              </div>
+              <div class="amm-map-box">
+                <app-campus-map
+                  *ngIf="isDirectRegisterModalOpen"
+                  [defaultMode]="'leaflet'"
+                  [compactHeight]="false"
+                  [showHeaderControls]="true"
+                  [customPickupPin]="adminMappingPinPreview"
+                  [enableCustomPickupPin]="true"
+                  (pickupPinChanged)="onDirectRegisterPinChanged($event)"
+                  [bicycles]="[]"
+                  [locations]="(stateService.locations$ | async) || []">
+                </app-campus-map>
+              </div>
+            </div>
+
+            <!-- Duplicate Alert (kung may kapareho o katabi) -->
+            <div *ngIf="adminDirectDuplicateWarning" class="amm-dup-alert">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <div>
+                <strong>Maaaring Duplicate na Lokasyon:</strong>
+                <p>{{ adminDirectDuplicateWarning }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Building Details & Configuration Form -->
+          <div class="amm-form-column">
+            <h4 class="form-sec-title">Detalye ng Gusali / Pasilidad</h4>
+
+            <!-- Building Name -->
+            <div class="amm-form-group">
+              <label>Pangalan ng Gusali / Lokasyon <span class="req-star">*</span></label>
+              <input
+                type="text"
+                class="amm-input"
+                placeholder="Hal. CICT Building, Administration, Gym"
+                [(ngModel)]="adminNewLocName"
+                (ngModelChange)="checkDirectDuplicate()" />
+            </div>
+
+            <!-- Category & Building Number (Dual Row with min-width: 0 to prevent overflow) -->
+            <div class="amm-form-dual-row">
+              <div class="amm-form-group">
+                <label>Kategorya</label>
+                <select [(ngModel)]="adminNewLocCategory" class="amm-input amm-select">
+                  <option value="academic">Academic (Kolehiyo/Classrooms)</option>
+                  <option value="administrative">Administrative (Offices)</option>
+                  <option value="services">Services (Canteen/Hostel/Coop)</option>
+                  <option value="recreation">Recreation (Sports/Gym/Oval)</option>
+                  <option value="gate">Gate (Terminal / Entrance)</option>
+                  <option value="facility">Facility (Pool / Utility)</option>
+                </select>
+              </div>
+
+              <div class="amm-form-group">
+                <label>Building No. / Code</label>
+                <input
+                  type="text"
+                  class="amm-input"
+                  placeholder="Hal. Bldg 25, COE"
+                  [(ngModel)]="adminNewLocBldg" />
+              </div>
+            </div>
+
+            <!-- Landmark / Description -->
+            <div class="amm-form-group">
+              <label>Landmark o Deskripsyon</label>
+              <textarea
+                class="amm-input amm-textarea"
+                rows="2"
+                placeholder="Hal. Katabi ng Physical Education & Gym, tapat ng waiting shed"
+                [(ngModel)]="adminNewLocDesc">
+              </textarea>
+            </div>
+
+            <!-- Separate Stopping Point from Building Structure -->
+            <div class="amm-stopping-box">
+              <div class="asb-top">
+                <div class="asb-text">
+                  <strong>Hiwalay na Stopping Point sa Kalsada</strong>
+                  <p>Gamitin ang kalsada bilang pickup point upang hindi pumasok ang sasakyan sa loob ng gusali.</p>
+                </div>
+                <ion-toggle [(ngModel)]="adminNewLocSeparateStopping"></ion-toggle>
+              </div>
+
+              <div *ngIf="adminNewLocSeparateStopping" class="asb-details">
+                <div class="asb-coords-row">
+                  <span>Stopping Lat: <strong>{{ adminNewLocStoppingLat || adminNewLocLat }}</strong></span>
+                  <span>Stopping Lng: <strong>{{ adminNewLocStoppingLng || adminNewLocLng }}</strong></span>
+                </div>
+                <button type="button" class="btn-asb-set" (click)="adminNewLocStoppingLat = adminNewLocLat; adminNewLocStoppingLng = adminNewLocLng; displayToast('Naitakda ang pin sa mapa bilang road stopping point!')">
+                  Set Current Pin as Stopping Point
+                </button>
+              </div>
+            </div>
+
+            <!-- Toggles: Pickup & Drop-off permissions -->
+            <div class="amm-toggles-row">
+              <div class="amm-toggle-card">
+                <span>Puwede ang Pickup</span>
+                <ion-toggle [(ngModel)]="adminNewLocPickupAllowed"></ion-toggle>
+              </div>
+              <div class="amm-toggle-card">
+                <span>Puwede ang Drop-off</span>
+                <ion-toggle [(ngModel)]="adminNewLocDropoffAllowed"></ion-toggle>
+              </div>
+            </div>
+
+            <!-- Direct Publish Notice -->
+            <div class="amm-live-publish-notice">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              <span>Awtomatikong magiging <strong>LIVE at APPROVED</strong> sa mapa at booking dropdown ng mga estudyante at rider.</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="amm-footer-actions">
+              <button type="button" class="btn-amm-cancel" (click)="isDirectRegisterModalOpen = false">
+                Kanselahin
+              </button>
+              <button
+                type="button"
+                class="btn-amm-submit"
+                [disabled]="!adminNewLocName.trim()"
+                (click)="submitDirectRegisterLocation()">
+                <ion-icon name="checkmark-circle-outline"></ion-icon>
+                <span>I-save at I-publish sa Mapa</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ==================== TAB 7: ANNOUNCEMENTS ==================== -->
+  <div *ngIf="currentTab === 'announcements'" class="tab-page ion-padding">
+    <div class="section-header-action">
+      <div class="page-title-group">
+        <h2>Service Announcements</h2>
+        <p>Broadcast operational notices to all students and drivers.</p>
+      </div>
+      <button class="btn-primary-add" (click)="isNewAnnouncementModalOpen = true">
+        <ion-icon name="megaphone-outline"></ion-icon> Publish Notice
+      </button>
+    </div>
+
+    <div class="announcements-admin-list">
+      <div *ngFor="let anc of (stateService.announcements$ | async)" class="admin-anc-card">
+        <div class="anc-top">
+          <span class="anc-type">{{ anc.type | uppercase }}</span>
+          <span class="anc-date">{{ anc.publishedAt }}</span>
+        </div>
+        <h4>{{ anc.title }}</h4>
+        <p>{{ anc.content }}</p>
+        <span class="anc-author">Author: {{ anc.author }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 8: USERS ==================== -->
+  <div *ngIf="currentTab === 'users'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>User Directory & Accounts</h2>
+      <p>Manage registered student passengers and bicycle operators.</p>
+    </div>
+
+    <div class="search-input-box">
+      <ion-icon name="search-outline"></ion-icon>
+      <input 
+        type="text" 
+        [(ngModel)]="studentSearchQuery" 
+        placeholder="Search students by name, ID or email..." 
+        class="search-input" />
+    </div>
+
+    <div class="users-list-cards">
+      <div *ngFor="let user of filteredStudents" class="user-card">
+        <img [src]="user.avatarUrl" class="user-avatar-thumb" alt="User Avatar" />
+        <div class="user-meta">
+          <strong>{{ user.fullName }}</strong>
+          <span class="user-id-sub">{{ user.idNumber }} • {{ user.department }}</span>
+          <span class="user-email-sub">{{ user.email }} • {{ user.phone }}</span>
+        </div>
+        <button 
+          class="btn-status-toggle" 
+          [class.btn-suspended]="user.accountStatus === 'suspended'"
+          (click)="toggleAccountStatus(user)">
+          {{ user.accountStatus | uppercase }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== BOTTOM NAVIGATION (MOBILE) ==================== -->
+  <div class="bottom-nav-bar">
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'overview'" (click)="currentTab = 'overview'">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <span>Overview</span>
+    </button>
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'locations'" (click)="currentTab = 'locations'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="map-outline"></ion-icon>
+        <span class="badge-dot-indicator" *ngIf="pendingLocations.length > 0">{{ pendingLocations.length }}</span>
+      </div>
+      <span>Locations</span>
+    </button>
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'bicycles'" (click)="currentTab = 'bicycles'">
+      <ion-icon name="bicycle-outline"></ion-icon>
+      <span>Fleet</span>
+    </button>
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'trips'" (click)="currentTab = 'trips'">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <span>Trips</span>
+    </button>
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'demand'" (click)="currentTab = 'demand'">
+      <ion-icon name="bar-chart-outline"></ion-icon>
+      <span>Demand</span>
+    </button>
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'maintenance'" (click)="currentTab = 'maintenance'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="build-outline"></ion-icon>
+        <span class="badge-dot-indicator" *ngIf="maintenanceBicycles > 0"></span>
+      </div>
+      <span>Repairs</span>
+    </button>
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'announcements'" (click)="currentTab = 'announcements'">
+      <ion-icon name="megaphone-outline"></ion-icon>
+      <span>Notices</span>
+    </button>
+  </div>
+
+  <!-- REGISTER BICYCLE MODAL -->
+  <ion-modal [isOpen]="isNewBikeModalOpen" (didDismiss)="isNewBikeModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+    <ng-template>
+      <div class="qr-modal-container">
+        <div class="qr-modal-header">
+          <h3>Register New Bicycle</h3>
+          <button class="modal-x-btn" (click)="isNewBikeModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Bicycle Number (e.g. BIKE-006)</label>
+          <input type="text" [(ngModel)]="newBikeNumber" placeholder="BIKE-006" class="form-text-input" />
+        </div>
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Assigned Operator Name</label>
+          <input type="text" [(ngModel)]="newDriverName" placeholder="Driver Name" class="form-text-input" />
+        </div>
+        <div class="form-field" style="text-align: left;">
+          <label>Passenger Capacity</label>
+          <input type="number" [(ngModel)]="newMaxCapacity" value="4" class="form-text-input" />
+        </div>
+        <button class="btn-primary-add" style="margin-top: 20px; width: 100%; justify-content: center; padding: 12px;" (click)="submitNewBicycle()">
+          Register Bicycle to Fleet
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- REVIEW MAINTENANCE MODAL -->
+  <ion-modal [isOpen]="isReviewMaintenanceModalOpen" (didDismiss)="isReviewMaintenanceModalOpen = false" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]">
+    <ng-template>
+      <div class="qr-modal-container" *ngIf="selectedReport">
+        <div class="qr-modal-header">
+          <h3>Maintenance Review: {{ selectedReport.reportNumber }}</h3>
+          <button class="modal-x-btn" (click)="isReviewMaintenanceModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="maint-review-box" style="text-align: left;">
+          <span style="font-size: 11px; font-weight: 800; color: #2563eb;">{{ selectedReport.bicycleNumber }}</span>
+          <h3 style="margin: 4px 0; font-size: 16px; font-weight: 800; color: #1d3698;">{{ selectedReport.issueType }}</h3>
+          <p style="font-size: 12px; color: #475569;">{{ selectedReport.description }}</p>
+
+          <div class="form-field" style="margin-top: 14px;">
+            <label>Admin Resolution Notes</label>
+            <textarea 
+              [(ngModel)]="adminResolutionNotes" 
+              rows="3" 
+              placeholder="Enter technician details, repairs completed..." 
+              class="form-text-input">
+            </textarea>
+          </div>
+
+          <button class="btn-primary-add" style="margin-top: 16px; width: 100%; background: #16a34a; justify-content: center; padding: 12px;" (click)="resolveReport()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon> Mark Resolved & Restore Shuttle
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- PUBLISH ANNOUNCEMENT MODAL -->
+  <ion-modal [isOpen]="isNewAnnouncementModalOpen" (didDismiss)="isNewAnnouncementModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+    <ng-template>
+      <div class="qr-modal-container">
+        <div class="qr-modal-header">
+          <h3>Broadcast Announcement</h3>
+          <button class="modal-x-btn" (click)="isNewAnnouncementModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Announcement Title</label>
+          <input type="text" [(ngModel)]="newAncTitle" placeholder="e.g. Weather Advisory / Peak Hours" class="form-text-input" />
+        </div>
+        <div class="form-field" style="text-align: left;">
+          <label>Notice Content</label>
+          <textarea [(ngModel)]="newAncContent" rows="3" placeholder="Enter message details..." class="form-text-input"></textarea>
+        </div>
+        <button class="btn-primary-add" style="margin-top: 20px; width: 100%; justify-content: center; padding: 12px;" (click)="submitAnnouncement()">
+          Broadcast to Campus
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ADD DESIGNATED ZONE MODAL (Feature 3) -->
+  <ion-modal [isOpen]="isNewZoneModalOpen" (didDismiss)="isNewZoneModalOpen = false" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]">
+    <ng-template>
+      <div class="qr-modal-container">
+        <div class="qr-modal-header">
+          <h3>Add Designated Campus Zone</h3>
+          <button class="modal-x-btn" (click)="isNewZoneModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Zone Name (e.g. CICT East Terminal)</label>
+          <input type="text" [(ngModel)]="newZoneName" placeholder="Zone Name" class="form-text-input" />
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Zone Type</label>
+          <select [(ngModel)]="newZoneType" class="form-text-input">
+            <option value="pickup">Pickup Bay Only</option>
+            <option value="dropoff">Drop-Off Point Only</option>
+            <option value="both">Both Pickup & Drop-Off</option>
+            <option value="restricted">Restricted / Prohibited Zone</option>
+          </select>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Radius (Meters)</label>
+          <input type="number" [(ngModel)]="newZoneRadiusMeters" value="40" class="form-text-input" />
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Description</label>
+          <input type="text" [(ngModel)]="newZoneDescription" placeholder="e.g. Designated student pickup area" class="form-text-input" />
+        </div>
+
+        <button class="btn-primary-add" style="margin-top: 16px; width: 100%; justify-content: center; padding: 12px;" (click)="submitNewZone()">
+          Save Designated Zone
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <ion-toast [isOpen]="showToast" [message]="toastMessage" [duration]="2500" (didDismiss)="showToast = false"></ion-toast>
+
+</div>

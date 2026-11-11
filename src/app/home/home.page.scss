@@ -1,27 +1,170 @@
-#container {
-  text-align: center;
+.mobile-wrapper {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
 
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  @media (max-width: 520px) {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  /* On desktop and tablet, allow Admin Dashboard to be fully wide and responsive */
+  &.is-admin-mode {
+    max-width: 1400px;
+    width: 100%;
+    box-shadow: none;
+    background-color: #f8fafc;
+  }
 }
 
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
+.app-main-content {
+  --background: #f8fafc;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
-#container p {
+/* ==================== GLOBAL IN-APP HEADS-UP TOAST ==================== */
+.in-app-toast-wrapper {
+  position: fixed;
+  top: max(14px, calc(10px + env(safe-area-inset-top, 0px)));
+  left: 14px;
+  right: 14px;
+  margin: 0 auto;
+  max-width: 450px;
+  z-index: 9999999;
+  cursor: pointer;
+  animation: inAppToastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  pointer-events: auto;
+}
+
+.in-app-toast-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-left: 5.5px solid #1d3698; /* NEUST Royal Blue left accent line */
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.15), 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1d3698;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px #dbeafe;
+}
+
+.toast-content-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-top-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.toast-title {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.toast-now-tag {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.toast-message-body {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #334155;
+  line-height: 1.35;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.btn-toast-dismiss {
+  background: #f1f5f9;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  cursor: pointer;
   font-size: 16px;
-  line-height: 22px;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
 
-  color: #8c8c8c;
-
-  margin: 0;
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
 }
 
-#container a {
-  text-decoration: none;
+.toast-progress-countdown {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: #1d3698;
+  width: 100%;
+  animation: toastProgress 5s linear forwards;
+}
+
+@keyframes inAppToastSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.96);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
 }

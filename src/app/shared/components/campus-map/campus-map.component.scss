@@ -1,0 +1,2051 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.campus-map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px -2px rgba(16, 42, 86, 0.08);
+  border: 1px solid #e2e8f0;
+
+  &.compact-mode {
+    height: auto;
+    .map-viewport, .google-map-container, .leaflet-map-wrapper {
+      height: clamp(270px, 48dvh, 380px);
+      min-height: 270px;
+    }
+  }
+
+  &.no-header-mode {
+    height: 100%;
+    min-height: 260px;
+    .map-viewport, .google-map-container, .leaflet-map-wrapper {
+      height: 100% !important;
+      min-height: 260px;
+    }
+  }
+}
+
+/* Floating Map Controls Header (Unified Single Live Map Header) */
+.map-controls-header.unified-live-map-header {
+  padding: 10px 12px 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+
+.live-map-top-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  .live-map-title-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+
+    .pulse-radar-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+      flex-shrink: 0;
+      animation: pulseLive 1.5s infinite;
+    }
+
+    .live-map-texts {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+
+      strong {
+        font-size: 13px;
+        font-weight: 900;
+        color: #0f172a;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+      }
+
+      span {
+        font-size: 10.5px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+
+  .legend-trigger-btn {
+    flex-shrink: 0;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #1d3698;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:active {
+      transform: scale(0.96);
+    }
+  }
+}
+
+/* 3 Compact & Beautiful Interactive Pilahan Summary Cards */
+.pilahan-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+
+  .pilahan-stat-card {
+    appearance: none;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0;
+    user-select: none;
+
+    .psc-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 4px;
+
+      .psc-emoji {
+        font-size: 14px;
+        line-height: 1;
+      }
+
+      .psc-count-pill {
+        font-size: 9px;
+        font-weight: 900;
+        padding: 1.5px 5px;
+        border-radius: 999px;
+        white-space: nowrap;
+
+        &.gate-pill {
+          background: #dcfce7;
+          color: #15803d;
+          border: 1px solid #86efac;
+        }
+
+        &.arki-pill {
+          background: #fef3c7;
+          color: #b45309;
+          border: 1px solid #fcd34d;
+        }
+
+        &.ronda-pill {
+          background: #dbeafe;
+          color: #1d4ed8;
+          border: 1px solid #93c5fd;
+        }
+      }
+    }
+
+    .psc-name {
+      font-size: 11px;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .psc-seats-sub {
+      font-size: 9px;
+      font-weight: 700;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &.is-focused {
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    }
+
+    &.gate-card.is-focused {
+      background: #f0fdf4;
+      border-color: #16a34a;
+      .psc-name { color: #15803d; }
+      .psc-seats-sub { color: #16a34a; }
+    }
+
+    &.arki-card.is-focused {
+      background: #fffbeb;
+      border-color: #d97706;
+      .psc-name { color: #b45309; }
+      .psc-seats-sub { color: #d97706; }
+    }
+
+    &.ronda-card.is-focused {
+      background: #eff6ff;
+      border-color: #2563eb;
+      .psc-name { color: #1d4ed8; }
+      .psc-seats-sub { color: #2563eb; }
+    }
+  }
+}
+
+/* Pill Segmented Control (Reference Image 1) */
+.pill-segmented-control {
+  display: flex;
+  background: #f1f5f9;
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 4px;
+
+  .seg-pill-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 7px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+
+    ion-icon {
+      font-size: 15px;
+    }
+
+    &.is-active {
+      background: #1d3698;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(16, 42, 86, 0.25);
+    }
+  }
+}
+
+.filter-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+
+  .filter-chip {
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9999px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+
+    &.selected {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .dot-avail { background: #16a34a; }
+    .dot-arki { background: #f59e0b; }
+    .dot-trip { background: #2563eb; }
+  }
+
+  .legend-trigger-btn {
+    margin-left: auto;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #1d3698;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+  }
+}
+
+/* Map Viewport */
+.map-viewport {
+  position: relative;
+  width: 100%;
+  height: clamp(320px, 60dvh, 460px);
+  overflow: hidden;
+  background-color: #cbd5e1;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.map-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+  transition: transform 0.05s linear;
+}
+
+.base-map-img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+  pointer-events: none;
+}
+
+.routes-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Campus Station Pins */
+.station-marker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  cursor: pointer;
+  z-index: 5;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover, &.selected-dest {
+    transform: translate(-50%, -105%) scale(1.12);
+    z-index: 15;
+  }
+
+  .station-pin-bubble {
+    background: #1d3698;
+    color: #ffffff;
+    border: 1.5px solid #f89318;
+    border-radius: 8px;
+    padding: 3px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+    .station-bldg-num {
+      font-size: 8px;
+      font-weight: 800;
+      color: #f89318;
+      line-height: 1;
+    }
+
+    .station-code {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .station-wait-pill {
+      margin-top: 2px;
+      background: #dc2626;
+      color: #ffffff;
+      font-size: 8px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+  }
+
+  .pin-anchor {
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #f89318;
+    margin: 0 auto;
+  }
+}
+
+/* Bicycle Shuttle Markers */
+.bike-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  z-index: 20;
+  transition: left 0.4s ease-out, top 0.4s ease-out;
+
+  .marker-pulse-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 36px;
+    height: 36px;
+    margin-top: -18px;
+    margin-left: -18px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pulseMarkerRing 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  }
+
+  &.bike-on-trip .marker-pulse-ring {
+    border: 2px solid #2563eb;
+    background: rgba(37, 99, 235, 0.25);
+  }
+
+  &.bike-available .marker-pulse-ring {
+    border: 2px solid #16a34a;
+    background: rgba(22, 163, 74, 0.25);
+  }
+
+  .bike-marker-badge {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 2px 6px 2px 2px;
+    box-shadow: 0 4px 12px rgba(16, 42, 86, 0.25);
+    border: 2px solid #1d3698;
+    z-index: 2;
+
+    .driver-avatar-mini {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin-right: 4px;
+      border: 1px solid #ffffff;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .bike-info-tag {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+
+      .bike-num {
+        font-size: 9px;
+        font-weight: 800;
+        color: #1d3698;
+      }
+
+      .seat-ratio {
+        font-size: 8px;
+        font-weight: 800;
+        color: #2563eb;
+      }
+    }
+  }
+
+  &.bike-available .bike-marker-badge {
+    border-color: #16a34a;
+    .seat-ratio { color: #16a34a; }
+  }
+
+  &.bike-almost-full .bike-marker-badge {
+    border-color: #f59e0b;
+    .seat-ratio { color: #d97706; }
+  }
+
+  &.bike-full .bike-marker-badge {
+    border-color: #dc2626;
+    .seat-ratio { color: #dc2626; }
+  }
+
+  &.bike-maintenance .bike-marker-badge {
+    border-color: #64748b;
+    opacity: 0.7;
+  }
+
+  .direction-arrow {
+    position: absolute;
+    bottom: -9px;
+    left: 50%;
+    margin-left: -4px;
+    font-size: 8px;
+    color: #1d3698;
+    font-weight: bold;
+    pointer-events: none;
+  }
+}
+
+/* Floating Zoom & Center Buttons */
+.floating-map-tools {
+  position: absolute;
+  right: 12px;
+  top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 30;
+
+  .tool-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1d3698;
+    cursor: pointer;
+    font-size: 16px;
+
+    &:active {
+      background: #f1f5f9;
+      transform: scale(0.95);
+    }
+  }
+}
+
+.zoom-level-badge {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  background: rgba(16, 42, 86, 0.9);
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+  z-index: 30;
+}
+
+/* FLOATING ENTITY DRAWER / CARD (Reference Image 1) */
+.floating-entity-drawer {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(16, 42, 86, 0.2);
+  border: 1px solid #e2e8f0;
+  z-index: 40;
+  animation: slideUpDrawer 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+
+  .drawer-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .drawer-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-right: 28px;
+
+    .drawer-bike-id {
+      font-size: 16px;
+      font-weight: 900;
+      color: #1d3698;
+      display: block;
+    }
+
+    .drawer-bldg-code {
+      font-size: 11px;
+      font-weight: 800;
+      color: #2563eb;
+      text-transform: uppercase;
+      display: block;
+    }
+
+    .drawer-station-name {
+      margin: 2px 0 0 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: #1d3698;
+    }
+
+    .drawer-dest-label {
+      font-size: 11px;
+      color: #64748b;
+      display: block;
+
+      strong {
+        color: #0f172a;
+      }
+    }
+
+    .drawer-battery-pill {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .drawer-wait-badge {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+  }
+
+  .drawer-driver-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 12px;
+
+    .drawer-driver-img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid #1d3698;
+    }
+
+    .drawer-driver-meta {
+      flex: 1;
+
+      .driver-name-rating {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        strong {
+          font-size: 13px;
+          color: #0f172a;
+        }
+
+        .driver-rating {
+          font-size: 10px;
+          font-weight: 800;
+          color: #f59e0b;
+        }
+      }
+
+      .driver-phone-sub {
+        font-size: 10px;
+        color: #64748b;
+      }
+    }
+
+    .drawer-status-tag {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+  }
+
+  .drawer-capacity-strip {
+    margin-bottom: 14px;
+
+    .cap-progress-track {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 6px;
+
+      .cap-progress-fill {
+        height: 100%;
+        background: #2563eb;
+        border-radius: 9999px;
+
+        &.cap-full-bg {
+          background: #dc2626;
+        }
+      }
+    }
+
+    .cap-progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #64748b;
+
+      .seats-free {
+        color: #16a34a;
+        font-weight: 800;
+      }
+    }
+  }
+
+  .drawer-station-desc {
+    font-size: 12px;
+    color: #475569;
+    margin: 4px 0 14px 0;
+    line-height: 1.35;
+  }
+
+  .terminal-queued-bikes-list {
+    margin: 6px 0 12px 0;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .tqb-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      color: #64748b;
+    }
+
+    .tqb-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 9px;
+      padding: 6px 8px;
+      cursor: pointer;
+
+      .tqb-left {
+        display: flex;
+        flex-direction: column;
+
+        strong {
+          font-size: 12px;
+          font-weight: 800;
+          color: #1d3698;
+        }
+
+        span {
+          font-size: 10.5px;
+          color: #475569;
+        }
+      }
+
+      .tqb-seats-pill {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #86efac;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .drawer-primary-btn {
+    width: 100%;
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+
+    &:disabled {
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+  }
+}
+
+@keyframes slideUpDrawer {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Mode B: Google Map */
+.google-map-container {
+  position: relative;
+  width: 100%;
+  height: 460px;
+  background: #e5e7eb;
+}
+
+.google-map-frame-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  .google-map-iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+}
+
+.google-overlay-cards {
+  position: absolute;
+  bottom: 12px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
+
+  .g-status-banner {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 14px rgba(16, 42, 86, 0.1);
+
+    .g-pin-icon {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+
+    .g-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+
+      strong {
+        font-size: 11px;
+        color: #1d3698;
+      }
+
+      span {
+        font-size: 10px;
+        color: #64748b;
+      }
+    }
+
+    .gps-active-badge {
+      background: #f0fdf4;
+      color: #16a34a;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #bbf7d0;
+    }
+  }
+
+  .g-bicycles-scroller {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+
+    .g-bike-card {
+      min-width: 220px;
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 4px 14px rgba(16, 42, 86, 0.12);
+      border-left: 4px solid #2563eb;
+      cursor: pointer;
+
+      .g-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+
+        .g-bikenumber {
+          font-weight: 800;
+          font-size: 13px;
+          color: #1d3698;
+        }
+
+        .g-status-pill {
+          font-size: 9px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 9999px;
+        }
+      }
+
+      .g-card-driver {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+
+        .g-driver-pic {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        .g-driver-name {
+          font-size: 12px;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .g-dest-text {
+          font-size: 10px;
+          color: #64748b;
+        }
+      }
+
+      .g-card-footer {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        font-weight: 600;
+        color: #475569;
+        border-top: 1px dashed #e2e8f0;
+        padding-top: 4px;
+      }
+    }
+  }
+}
+
+/* Legend items */
+.legend-section-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1d3698;
+  margin: 16px 0 10px 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+
+  .legend-color-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .swatch-avail { background: #16a34a; }
+  .swatch-almost { background: #f59e0b; }
+  .swatch-trip { background: #2563eb; }
+  .swatch-full { background: #dc2626; }
+
+  p {
+    margin: 2px 0 0 0;
+    font-size: 11px;
+    color: #64748b;
+  }
+}
+
+.legend-bldg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .bldg-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+
+    .bldg-num-pill {
+      background: #1d3698;
+      color: #f89318;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 6px;
+      border-radius: 4px;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .bldg-name-box {
+      display: flex;
+      flex-direction: column;
+
+      strong {
+        font-size: 12px;
+        color: #0f172a;
+      }
+
+      .bldg-code-sub {
+        font-size: 10px;
+        color: #64748b;
+      }
+    }
+  }
+}
+
+/* --- Features 1-5 SCSS Enhancements --- */
+
+/* Pin Status & Geofence Banner */
+.pin-status-banner {
+  padding-top: 4px;
+
+  .pin-status-content {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    ion-icon {
+      font-size: 20px;
+      color: #2563eb;
+      flex-shrink: 0;
+    }
+
+    &.is-invalid {
+      background: #fef2f2;
+      border-color: #fecaca;
+
+      ion-icon {
+        color: #dc2626;
+      }
+    }
+
+    .pin-status-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      strong {
+        font-size: 12px;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .coords-tag {
+        font-size: 10px;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+
+        .geofence-tag {
+          font-weight: 700;
+          padding: 1px 6px;
+          border-radius: 4px;
+
+          &.geofence-valid {
+            background: #dcfce7;
+            color: #15803d;
+          }
+
+          &.geofence-invalid {
+            background: #fee2e2;
+            color: #b91c1c;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Custom Pickup Pin Marker on Visual Canvas */
+.custom-pickup-pin-marker {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 45;
+  cursor: grab;
+  pointer-events: none;
+
+  .pin-radar-wave {
+    position: absolute;
+    bottom: -6px;
+    width: 28px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.35);
+    animation: radarPulse 1.8s infinite ease-out;
+  }
+
+  .pin-icon-bubble {
+    width: 36px;
+    height: 36px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    background: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.45);
+    border: 2.5px solid #ffffff;
+
+    ion-icon {
+      transform: rotate(45deg);
+      font-size: 18px;
+      color: #ffffff;
+    }
+  }
+
+  .pin-title-badge {
+    margin-top: 4px;
+    background: #1d3698;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@keyframes radarPulse {
+  0% { transform: scale(0.6); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* Designated Zones Visual Circle */
+.zone-visual-circle {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px dashed rgba(37, 99, 235, 0.6);
+  background: rgba(37, 99, 235, 0.12);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+
+  &.zone-restricted {
+    border-color: rgba(220, 38, 38, 0.7);
+    background: rgba(220, 38, 38, 0.15);
+
+    .zone-label-tag {
+      background: #dc2626;
+    }
+  }
+
+  .zone-label-tag {
+    position: absolute;
+    bottom: -16px;
+    background: #1d3698;
+    color: #ffffff;
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+}
+
+/* Interactive Leaflet Map Wrapper */
+.leaflet-map-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  flex: 1 1 auto;
+  background: #e2e8f0;
+
+  .leaflet-map-canvas {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 280px;
+    z-index: 1;
+  }
+
+  .leaflet-floating-meta {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+    pointer-events: none;
+
+    .l-status-badge {
+      background: rgba(16, 42, 86, 0.92);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 5px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+      .live-dot {
+        width: 7px;
+        height: 7px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: pulseLive 1.5s infinite;
+      }
+    }
+
+    .l-instruction-chip {
+      background: #ffffff;
+      color: #1e293b;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      border: 1px solid #e2e8f0;
+
+      ion-icon {
+        color: #2563eb;
+      }
+    }
+  }
+}
+
+@keyframes pulseLive {
+  0% { transform: scale(0.9); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+  100% { transform: scale(0.9); opacity: 1; }
+}
+
+/* Custom Leaflet Marker HTML Styles */
+:host ::ng-deep {
+  /* ==================== AUTHENTIC GRAB MAP PINS ==================== */
+  .grab-leaflet-pin-icon-wrap {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .grab-marker-anchor-box {
+    position: relative;
+    width: 0;
+    height: 0;
+  }
+
+  .grab-pin-root {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    pointer-events: auto;
+  }
+
+  .grab-pin-teardrop {
+    position: absolute;
+    left: -17px; /* Center 34px width over (0,0) */
+    bottom: 0;   /* Tip touches (0,0) */
+    width: 34px;
+    height: 44px;
+    cursor: grab;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.28));
+    transition: transform 0.15s ease;
+
+    &:active {
+      transform: scale(1.1) translateY(-4px);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .pin-shadow-ellipse {
+      position: absolute;
+      left: 50%;
+      bottom: -4px;
+      transform: translateX(-50%);
+      width: 16px;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.28);
+      border-radius: 50%;
+      filter: blur(1.5px);
+    }
+  }
+
+  /* Attached Floating White Label Bubble */
+  .grab-pin-bubble {
+    position: absolute;
+    bottom: 8px; /* Aligned with the center of the teardrop head */
+    background: #ffffff;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    pointer-events: auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    animation: fadeInBubble 0.2s ease-out;
+
+    .bubble-title-text {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.2px;
+      max-width: min(190px, 44vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      @media (max-width: 360px) {
+        font-size: 11.5px;
+        max-width: 38vw;
+      }
+    }
+
+    .bubble-arrow-icon {
+      font-size: 16px;
+      font-weight: 800;
+      color: #94a3b8;
+      margin-left: 4px;
+      line-height: 1;
+    }
+
+    /* Pickup Bubble (Floats on the Left of Blue Pin) */
+    &.bubble-left {
+      right: 24px; /* Sits to the left of the 34px pin */
+      padding: 7px 14px 7px 16px;
+    }
+
+    /* Destination Bubble (Floats on the Right of Red Pin) */
+    &.bubble-right {
+      left: 24px; /* Sits to the right of the 34px pin */
+      padding: 6px 10px 6px 14px;
+      gap: 6px;
+
+      .bubble-plus-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-weight: 800;
+        color: #334155;
+        margin-left: 2px;
+        border: 1px solid #e2e8f0;
+      }
+    }
+  }
+
+  @keyframes fadeInBubble {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ==================== CLEAN 3D PEDICAB VEHICLE SPRITE ==================== */
+  .leaflet-clean-pedicab-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .leaflet-clean-pedicab-icon-wrap {
+    width: 80px;
+    height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    &:hover {
+      transform: scale(1.15);
+      z-index: 999 !important;
+    }
+
+    .pedicab-vehicle-sprite {
+      width: 36px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+      z-index: 2;
+
+      .pedicab-map-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+    }
+
+    .pedicab-ground-shadow {
+      position: absolute;
+      top: 25px;
+      width: 22px;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.22);
+      border-radius: 50%;
+      filter: blur(1.5px);
+      z-index: 1;
+    }
+
+    .pedicab-mini-tag {
+      margin-top: -1px;
+      z-index: 3;
+      background: #0f172a;
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 1.5px 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      white-space: nowrap;
+
+      .pm-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #22c55e;
+      }
+
+      .pm-num {
+        font-size: 8.5px;
+        font-weight: 900;
+        letter-spacing: 0.2px;
+      }
+
+      .pm-sep {
+        font-size: 8px;
+        opacity: 0.6;
+      }
+
+      .pm-state {
+        font-size: 8px;
+        font-weight: 700;
+        opacity: 0.95;
+      }
+    }
+
+    &.trike-queued-gate {
+      .pedicab-mini-tag {
+        background: #14532d;
+        border-color: #86efac;
+        .pm-dot { background: #4ade80; }
+        .pm-state { color: #86efac; }
+      }
+    }
+
+    &.trike-queued-arki {
+      .pedicab-mini-tag {
+        background: #78350f;
+        border-color: #fcd34d;
+        .pm-dot { background: #fbbf24; }
+        .pm-state { color: #fde68a; }
+      }
+    }
+
+    &.trike-roaming {
+      .pedicab-mini-tag {
+        background: #064e3b;
+        border-color: #6ee7b7;
+        .pm-dot { background: #34d399; }
+        .pm-state { color: #a7f3d0; }
+      }
+    }
+
+    &.trike-ontrip {
+      .pedicab-mini-tag {
+        background: #1e3a8a;
+        border-color: #93c5fd;
+        .pm-dot { background: #60a5fa; }
+        .pm-state { color: #bfdbfe; }
+      }
+    }
+  }
+
+  /* ==================== TERMINAL PILAHAN HUB MARKERS ==================== */
+  .leaflet-terminal-hub-host {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .leaflet-terminal-hub-marker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.18s ease;
+
+    &:hover {
+      transform: scale(1.06);
+      z-index: 960 !important;
+    }
+
+    .hub-pulse-ring {
+      position: absolute;
+      bottom: 2px;
+      width: 32px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(22, 163, 74, 0.3);
+      animation: radarPulse 1.8s infinite ease-out;
+    }
+
+    .hub-card-pill {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 5px 8px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+      border: 2px solid #16a34a;
+      min-width: 136px;
+      max-width: 175px;
+      z-index: 2;
+
+      .hub-icon-box {
+        font-size: 16px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+
+      .hub-info-col {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+
+        .hub-top-line {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 4px;
+
+          .hub-title {
+            font-size: 10px;
+            font-weight: 900;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .hub-count-badge {
+            font-size: 8.5px;
+            font-weight: 900;
+            color: #ffffff;
+            background: #16a34a;
+            padding: 1px 5px;
+            border-radius: 999px;
+            white-space: nowrap;
+          }
+        }
+
+        .hub-sub-meta {
+          font-size: 8px;
+          font-weight: 700;
+          color: #64748b;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+
+    .hub-pointer-tip {
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid #16a34a;
+      margin-top: -1px;
+      z-index: 2;
+    }
+
+    &.hub-gate {
+      .hub-pulse-ring { background: rgba(22, 163, 74, 0.3); }
+      .hub-card-pill { border-color: #16a34a; }
+      .hub-count-badge { background: #16a34a; }
+      .hub-pointer-tip { border-top-color: #16a34a; }
+    }
+
+    &.hub-arki {
+      .hub-pulse-ring { background: rgba(217, 119, 6, 0.3); }
+      .hub-card-pill { border-color: #d97706; }
+      .hub-count-badge { background: #d97706; }
+      .hub-pointer-tip { border-top-color: #d97706; }
+    }
+  }
+
+  .custom-pickup-leaflet-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: grab;
+
+    .pin-head {
+      width: 32px;
+      height: 32px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
+      border: 2px solid #2563eb;
+    }
+
+    .pin-tag {
+      margin-top: 2px;
+      background: #1d3698;
+      color: #ffffff;
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+  }
+
+  .leaflet-bike-marker {
+    cursor: pointer;
+
+    .marker-bubble {
+      background: #ffffff;
+      border: 2.5px solid #2563eb;
+      border-radius: 20px;
+      padding: 2px 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+      .marker-avatar {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .marker-label {
+        display: flex;
+        flex-direction: column;
+
+        .m-id {
+          font-size: 9px;
+          font-weight: 800;
+          color: #0f172a;
+          line-height: 1;
+        }
+
+        .m-seats {
+          font-size: 8px;
+          font-weight: 700;
+          color: #16a34a;
+          line-height: 1;
+        }
+      }
+
+      .marker-arrow {
+        font-size: 8px;
+        color: #2563eb;
+      }
+    }
+  }
+
+  .leaflet-selected-dest-marker {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .dest-target-tag {
+      background: #1d3698;
+      color: #ffffff;
+      border: 1.5px solid #f89318;
+      border-radius: 9999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 4px 14px rgba(16, 42, 86, 0.35);
+      white-space: nowrap;
+
+      .dest-icon {
+        font-size: 12px;
+      }
+    }
+  }
+
+  .leaflet-station-marker {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .station-pin-bubble {
+      background: #1d3698;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 3px 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+      border: 1.5px solid #ffffff;
+
+      .station-bldg-num {
+        background: #f89318;
+        color: #1d3698;
+        font-size: 9px;
+        font-weight: 900;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+
+      .station-code {
+        font-size: 9px;
+        font-weight: 800;
+      }
+
+      .station-wait-pill {
+        background: #dc2626;
+        color: #ffffff;
+        font-size: 8px;
+        font-weight: 700;
+        padding: 1px 4px;
+        border-radius: 9999px;
+      }
+    }
+
+    .pin-anchor {
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid #1d3698;
+    }
+
+    &.selected-dest {
+      .station-pin-bubble {
+        background: #2563eb;
+        border-color: #f89318;
+        transform: scale(1.1);
+      }
+      .pin-anchor {
+        border-top-color: #2563eb;
+      }
+    }
+  }
+
+  /* Grab/JoyRide Custom Pedicab Live Marker Styles */
+  .leaflet-pedicab-icon-host {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .leaflet-custom-pedicab-container {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .pedicab-halo {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      top: 10px;
+      left: 10px;
+      z-index: 1;
+      animation: pulsePedicab 1.8s infinite ease-out;
+
+      &.halo-green {
+        background: rgba(16, 185, 129, 0.28);
+        border: 2px solid rgba(16, 185, 129, 0.6);
+      }
+      &.halo-blue {
+        background: rgba(37, 99, 235, 0.28);
+        border: 2px solid rgba(37, 99, 235, 0.6);
+      }
+    }
+
+    .pedicab-vehicle-body {
+      position: relative;
+      z-index: 2;
+      transition: transform 0.4s ease-out;
+
+      .pedicab-3d-img {
+        width: 62px;
+        height: 44px;
+        object-fit: contain;
+        display: block;
+        filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
+      }
+    }
+
+    .pedicab-rider-badge {
+      position: absolute;
+      bottom: -6px;
+      z-index: 3;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      white-space: nowrap;
+
+      .p-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        &.dot-green { background: #10b981; }
+        &.dot-blue { background: #3b82f6; }
+      }
+    }
+  }
+
+  @keyframes pulsePedicab {
+    0% { transform: scale(0.85); opacity: 0.9; }
+    50% { transform: scale(1.25); opacity: 0.35; }
+    100% { transform: scale(0.85); opacity: 0.9; }
+  }
+
+  /* Pickup & Destination Pins */
+  .leaflet-point-pin-container {
+    background: transparent;
+    border: none;
+  }
+
+  .leaflet-point-pin {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .pin-ring-pulse {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      top: -2px;
+      animation: pinWave 1.8s infinite;
+      &.pickup-pulse {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1.5px solid #10b981;
+      }
+      &.dest-pulse {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1.5px solid #ef4444;
+      }
+    }
+
+    .pin-core-circle {
+      position: relative;
+      z-index: 2;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+      &.pickup-circle { border: 2px solid #10b981; }
+      &.dest-circle { border: 2px solid #ef4444; }
+    }
+
+    .pin-label-pill {
+      margin-top: 3px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+      white-space: nowrap;
+      pointer-events: none;
+
+      .pill-kicker {
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+      }
+      .pill-name {
+        font-size: 10px;
+        font-weight: 700;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      &.pickup-pill {
+        background: #064e3b;
+        color: #ecfdf5;
+        border: 1px solid #10b981;
+        .pill-kicker { color: #34d399; }
+      }
+      &.dest-pill {
+        background: #7f1d1d;
+        color: #fef2f2;
+        border: 1px solid #ef4444;
+        .pill-kicker { color: #f87171; }
+      }
+    }
+  }
+
+  @keyframes pinWave {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+}
+
+/* Floating Recenter Map Button */
+.btn-map-recenter-float {
+  position: absolute;
+  right: 14px;
+  bottom: 16px;
+  z-index: 450;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  ion-icon {
+    font-size: 16px;
+    color: #2563eb;
+  }
+
+  &:hover {
+    background: #f8fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+
+

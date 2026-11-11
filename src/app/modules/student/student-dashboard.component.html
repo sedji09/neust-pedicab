@@ -1,0 +1,1531 @@
+<div class="student-container">
+
+  <!-- ==================== TAB 1: HOME ==================== -->
+  <div *ngIf="currentTab === 'home'" class="tab-page home-streamlined-page">
+    
+    <!-- 1. USER GREETING & NAME CARD -->
+    <div class="user-welcome-card">
+      <div class="welcome-text-group">
+        <span class="welcome-greeting">{{ langService.t('app.welcome') }}</span>
+        <h2 class="welcome-username">{{ authService.currentUser?.fullName || langService.t('app.student_passenger') }}</h2>
+        <div class="welcome-meta-row">
+          <span class="user-role-pill">{{ langService.t('app.role_student') }}</span>
+          <span class="user-id-text">{{ authService.currentUser?.idNumber || '2024-Student' }}</span>
+          <span class="user-dept-text">• {{ authService.currentUser?.department || 'CICT' }}</span>
+        </div>
+      </div>
+      <div class="welcome-avatar-wrap" (click)="stateService.openProfilePage()" title="Profile & Settings">
+        <img [src]="authService.currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'" alt="Avatar" referrerpolicy="no-referrer" (error)="$any($event.target).src = 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80'" />
+        <span class="avatar-online-dot"></span>
+      </div>
+    </div>
+
+    <!-- Active Ride Alert Banner (Only when currently on trip or queued) -->
+    <div *ngIf="myActiveQueue" class="active-ride-quick-banner" (click)="currentTab = 'queue'">
+      <div class="banner-icon-bubble">
+        <ion-icon name="bicycle-outline"></ion-icon>
+      </div>
+      <div class="banner-info">
+        <strong>{{ langService.t('home.active_ticket_banner', { num: myActiveQueue.queueNumber }) }}</strong>
+        <span>{{ myActiveQueue.pickupLocationName }} ➔ {{ myActiveQueue.destinationName }}</span>
+      </div>
+      <span class="banner-action-btn">{{ langService.t('home.view') }}</span>
+    </div>
+
+    <!-- 2. ACTIVE BOOKING CARD (Shown on Home when user has an active ride/booking) -->
+    <div *ngIf="myActiveBooking" class="home-active-booking-card" (click)="selectTab('queue')">
+      <div class="habc-header">
+        <div class="habc-status-pill" [ngClass]="'status-' + myActiveBooking.status">
+          <span class="habc-pulse-dot"></span>
+          <span class="habc-status-text">
+            <ng-container [ngSwitch]="myActiveBooking.status">
+              <span *ngSwitchCase="'searching'">{{ langService.t('tracking.searching_title') }}</span>
+              <span *ngSwitchCase="'accepted'">{{ langService.t('tracking.accepted_banner') }}</span>
+              <span *ngSwitchCase="'driver_arriving'">{{ langService.t('tracking.heading_banner') }}</span>
+              <span *ngSwitchCase="'driver_arrived'">{{ langService.t('tracking.arrived_banner') }}</span>
+              <span *ngSwitchCase="'in_progress'">{{ langService.t('tracking.in_progress_banner') }}</span>
+              <span *ngSwitchCase="'no_driver_found'">{{ langService.currentLanguage === 'fil' ? 'Walang Natagpuang Driver' : 'No Driver Found' }}</span>
+              <span *ngSwitchDefault>{{ myActiveBooking.status | uppercase }}</span>
+            </ng-container>
+          </span>
+        </div>
+        <span class="habc-booking-num">{{ myActiveBooking.bookingNumber }}</span>
+      </div>
+
+      <!-- Driver info if assigned -->
+      <div *ngIf="myActiveBooking.assignedDriverName" class="habc-driver-row">
+        <img [src]="myActiveBooking.assignedDriverPhoto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" class="habc-driver-avatar" alt="Driver" />
+        <div class="habc-driver-info">
+          <strong>{{ myActiveBooking.assignedDriverName }}</strong>
+          <span>{{ myActiveBooking.assignedBikeNumber || 'NEUST E-Pedicab' }} • {{ langService.t('tracking.verified_driver') }}</span>
+        </div>
+        <a *ngIf="myActiveBooking.assignedDriverPhone" [href]="'tel:' + myActiveBooking.assignedDriverPhone" class="btn-habc-call" (click)="$event.stopPropagation()">
+          <ion-icon name="call"></ion-icon>
+        </a>
+      </div>
+
+      <!-- Route nodes -->
+      <div class="habc-route-box">
+        <div class="hrb-point">
+          <span class="hrb-dot dot-pick"></span>
+          <div class="hrb-text">
+            <span class="hrb-lbl">{{ langService.t('tracking.pick_up') }}</span>
+            <strong>{{ myActiveBooking.pickupName }}</strong>
+          </div>
+        </div>
+        <div class="hrb-line"></div>
+        <div class="hrb-point">
+          <span class="hrb-dot dot-drop"></span>
+          <div class="hrb-text">
+            <span class="hrb-lbl">{{ langService.t('tracking.drop_off') }}</span>
+            <strong>{{ myActiveBooking.destinationName }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trip stats row -->
+      <div class="habc-stats-row">
+        <div class="habc-stat">
+          <ion-icon name="navigate-outline"></ion-icon>
+          <span>{{ myActiveBooking.distanceMeters }}m</span>
+        </div>
+        <div class="habc-stat">
+          <ion-icon name="time-outline"></ion-icon>
+          <span>~{{ myActiveBooking.estimatedMinutes }} min</span>
+        </div>
+        <div class="habc-stat is-fare">
+          <ion-icon name="cash-outline"></ion-icon>
+          <strong>₱{{ myActiveBooking.fareAmount || totalBookingFare }}.00</strong>
+        </div>
+      </div>
+
+      <!-- Action buttons: View Live Ride & Message Driver (When searching / active) -->
+      <div class="habc-actions-row" *ngIf="myActiveBooking.status !== 'no_driver_found'">
+        <button type="button" class="btn-habc-track" (click)="selectTab('queue'); $event.stopPropagation()">
+          <ion-icon name="map-outline"></ion-icon>
+          <span>{{ langService.t('home.track_ride_btn') }}</span>
+          <ion-icon name="arrow-forward-outline" class="habc-arrow"></ion-icon>
+        </button>
+        <button type="button" class="btn-habc-chat" (click)="openMessengerChat(); selectTab('messages'); $event.stopPropagation()" title="Chat with Driver">
+          <ion-icon name="chatbubble-ellipses"></ion-icon>
+          <span>{{ langService.t('nav.messages') }}</span>
+          <span class="habc-chat-badge" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+        </button>
+      </div>
+
+      <!-- Action buttons: Retry or Cancel when No Driver Found -->
+      <div class="habc-actions-row is-retry-row" *ngIf="myActiveBooking.status === 'no_driver_found'">
+        <button type="button" class="btn-habc-track btn-retry-search" (click)="retryBookingJoyRide(myActiveBooking.id); $event.stopPropagation()">
+          <ion-icon name="refresh-outline"></ion-icon>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Subukan Muli' : 'Retry Search' }}</span>
+        </button>
+        <button type="button" class="btn-habc-cancel-action" (click)="cancelBookingJoyRide(myActiveBooking.id); $event.stopPropagation()">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Kanselahin' : 'Cancel' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. QUICK BOOKING CARD (Shown on Home when user has NO active ride/booking) -->
+    <div *ngIf="!myActiveBooking && !myActiveQueue" class="home-quick-book-card" (click)="selectTab('queue')">
+      <div class="hqb-top-row">
+        <div class="hqb-text-col">
+          <span class="hqb-tag">{{ langService.t('home.quick_book_tag') }}</span>
+          <h3>{{ langService.t('home.quick_book_title') }}</h3>
+          <p>{{ langService.t('home.quick_book_sub') }}</p>
+        </div>
+        <div class="hqb-img-box">
+          <img src="assets/images/pedicab-3d.png" alt="Pedicab" class="hqb-pedicab-img" />
+        </div>
+      </div>
+
+      <div class="hqb-search-trigger">
+        <div class="hqb-pin-dot">
+          <ion-icon name="location"></ion-icon>
+        </div>
+        <span class="hqb-placeholder">{{ langService.t('home.where_to_placeholder') }}</span>
+        <button type="button" class="btn-hqb-go">
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+        </button>
+      </div>
+
+      <!-- Quick campus destinations shortcut chips -->
+      <div class="hqb-quick-chips">
+        <button
+          *ngFor="let loc of popularCampusLocations.slice(0, 4)"
+          type="button"
+          class="hqb-chip"
+          (click)="selectGrabDestination(loc); $event.stopPropagation()">
+          <ion-icon name="navigate-outline"></ion-icon>
+          <span>{{ loc.name.split(' (')[0] }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. PEDICAB TERMINAL PILAHAN & QUEUE STANDS (Real-time GPS Detection) -->
+    <div class="home-section-container terminal-stands-section">
+      <div class="home-section-header">
+        <div>
+          <h3 class="home-section-title">
+            <ion-icon name="bicycle" class="title-icon"></ion-icon>
+            {{ langService.currentLanguage === 'fil' ? 'Pila ng Pedicab sa Paradahan' : 'Pedicab Terminal Queues' }}
+          </h3>
+          <span class="home-section-sub">
+            {{ langService.currentLanguage === 'fil' ? 'Real-time na dami ng pedicab na nakapila sa bawat paradahan' : 'Live detected pedicabs waiting at designated stands' }}
+          </span>
+        </div>
+        <span class="live-radar-badge">
+          <span class="radar-dot"></span>
+          <span>Live GPS</span>
+        </span>
+      </div>
+
+      <div class="terminals-grid">
+        <div *ngFor="let term of terminalQueues" class="terminal-card" [class.has-queue]="term.availableCount > 0">
+          
+          <!-- Card Top: Name and live badge -->
+          <div class="tc-top">
+            <div class="tc-title-group">
+              <div class="tc-icon-wrap" [class.is-arch]="term.id === 'term-arch'">
+                <ion-icon [name]="term.id === 'term-arch' ? 'business-outline' : 'bicycle'"></ion-icon>
+              </div>
+              <div class="tc-name-col">
+                <h4>{{ term.name }}</h4>
+                <span class="tc-coords">
+                  <ion-icon name="location-outline"></ion-icon>
+                  {{ term.lat }}, {{ term.lng }}
+                </span>
+              </div>
+            </div>
+
+            <div class="tc-status-pill" [ngClass]="'status-' + term.statusColor">
+              <span class="status-dot"></span>
+              <strong>{{ term.availableCount }}</strong>
+              <span>{{ langService.currentLanguage === 'fil' ? 'Nakapila' : 'Queued' }}</span>
+            </div>
+          </div>
+
+          <!-- Card Middle: Queued Pedicab details & Seats -->
+          <div class="tc-middle">
+            <div class="tc-stat-row">
+              <div class="tc-stat-item">
+                <span class="tsi-lbl">{{ langService.currentLanguage === 'fil' ? 'Available na Pwesto' : 'Total Seats' }}</span>
+                <strong class="tsi-val">{{ term.totalSeats }} {{ langService.currentLanguage === 'fil' ? 'bakanteng upuan' : 'seats open' }}</strong>
+              </div>
+              <div class="tc-stat-item is-eta">
+                <span class="tsi-lbl">{{ langService.currentLanguage === 'fil' ? 'Tinatayang Hintay' : 'Boarding Status' }}</span>
+                <strong class="tsi-val val-ready">{{ term.etaWaitText }}</strong>
+              </div>
+            </div>
+
+            <!-- Chips of detected queued bicycles -->
+            <div class="tc-bikes-chips-row" *ngIf="term.bicycles.length > 0">
+              <span class="tbc-chip" *ngFor="let bike of term.bicycles">
+                <ion-icon name="bicycle"></ion-icon>
+                <strong>{{ bike.bikeNumber }}</strong>
+                <span class="tbc-seats">({{ bike.maxCapacity - bike.passengerCount }} {{ langService.currentLanguage === 'fil' ? 'bakante' : 'open' }})</span>
+              </span>
+            </div>
+
+            <div class="tc-empty-warning" *ngIf="term.bicycles.length === 0">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>{{ langService.currentLanguage === 'fil' ? 'Kasalukuyang bumibiyahe ang mga pedicab. Paparating na ang susunod na shuttle.' : 'All campus pedicabs are currently on trips. Next shuttle arriving soon.' }}</span>
+            </div>
+          </div>
+
+          <!-- Card Bottom Action: Book ride directly from this terminal -->
+          <div class="tc-bottom-action">
+            <button type="button" class="btn-tc-book-from" (click)="bookFromTerminal(term)">
+              <ion-icon name="navigate-outline"></ion-icon>
+              <span>{{ langService.currentLanguage === 'fil' ? 'Mag-book Mula sa Paradahang Ito' : 'Book From This Terminal' }}</span>
+              <ion-icon name="arrow-forward-outline" class="btn-arrow"></ion-icon>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==================== TAB 2: LIVE MAP (Unified Live Trike & Pilahan Map) ==================== -->
+  <div *ngIf="currentTab === 'map'" class="tab-page-map">
+    <app-campus-map
+      [defaultMode]="'leaflet'"
+      [bicycles]="(stateService.bicycles$ | async) || []"
+      [locations]="(stateService.locations$ | async) || []"
+      [designatedZones]="(stateService.designatedZones$ | async) || []"
+      [customPickupPin]="null"
+      [enableCustomPickupPin]="false"
+      [trackingSession]="activeTrackingSession"
+      [showHeaderControls]="true"
+      [compactHeight]="false"
+      (selectBicycle)="bookPedicab($event)"
+      (queueForDestination)="onMapQueueSelected($event)">
+    </app-campus-map>
+  </div>
+
+  <!-- ==================== TAB 3: DIGITAL QUEUE / BOOKING (Dedicated Solo Page, No Header/Bottom Nav) ==================== -->
+  <div *ngIf="currentTab === 'queue'" class="tab-page grab-tab-container solo-booking-page" [class.no-padding]="!myActiveBooking && !myActiveQueue && !recentlyCompletedBooking">
+    <!-- Solo Page Header (Back button + Title) for active booking / queue / completed states -->
+    <div class="solo-active-header" *ngIf="myActiveBooking || myActiveQueue || recentlyCompletedBooking">
+      <button type="button" class="btn-solo-back" (click)="dismissCompletedBookingBanner(); closeBookingFlow()" title="Bumalik">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </button>
+      <div class="solo-title-col">
+        <h2>{{ langService.t('book.title') }}</h2>
+        <p>{{ langService.t('book.subtitle') }}</p>
+      </div>
+    </div>
+
+    <!-- ==================== REAL-TIME DROP-OFF / COMPLETED TRIP CARD ==================== -->
+    <div *ngIf="!myActiveBooking && recentlyCompletedBooking as doneBooking" class="completed-dropoff-card">
+      <div class="cdc-badge-icon">✅</div>
+      <span class="cdc-tag">{{ doneBooking.bookingNumber }} • {{ langService.currentLanguage === 'fil' ? 'NAIHATID NA' : 'COMPLETED' }}</span>
+      <h3>{{ langService.currentLanguage === 'fil' ? 'Naihatid ka na sa ' + doneBooking.destinationName + '!' : 'Dropped off at ' + doneBooking.destinationName + '!' }}</h3>
+      <p>
+        {{ langService.currentLanguage === 'fil' 
+          ? 'Naibaba na ng driver ang iyong sakay. Ang ' + doneBooking.assignedBikeNumber + ' ay balik na sa 4/4 Available na Upuan.' 
+          : 'Your ride is complete! ' + doneBooking.assignedBikeNumber + ' is now reset to 4/4 Available Seats.' }}
+      </p>
+
+      <div class="cdc-summary-box">
+        <div class="cdc-row">
+          <span>{{ langService.currentLanguage === 'fil' ? 'Driver at Trike:' : 'Driver & Pedicab:' }}</span>
+          <strong>{{ doneBooking.assignedDriverName }} ({{ doneBooking.assignedBikeNumber }})</strong>
+        </div>
+        <div class="cdc-row">
+          <span>{{ langService.currentLanguage === 'fil' ? 'Ruta:' : 'Route:' }}</span>
+          <strong>{{ doneBooking.pickupName }} → {{ doneBooking.destinationName }}</strong>
+        </div>
+        <div class="cdc-row">
+          <span>{{ langService.currentLanguage === 'fil' ? 'Bilang ng Sakay:' : 'Passenger Count:' }}</span>
+          <strong>{{ doneBooking.passengerCount || 1 }} {{ (doneBooking.passengerCount || 1) > 1 ? (langService.currentLanguage === 'fil' ? 'Pasahero' : 'Passengers') : (langService.currentLanguage === 'fil' ? 'Pasahero' : 'Passenger') }}</strong>
+        </div>
+        <div class="cdc-row is-total">
+          <span>{{ langService.currentLanguage === 'fil' ? 'Pamasahe (Cash):' : 'Fare Collected (Cash):' }}</span>
+          <strong>₱{{ doneBooking.fareAmount || ((doneBooking.passengerCount || 1) * 10) }}.00</strong>
+        </div>
+      </div>
+
+      <div class="cdc-actions">
+        <button type="button" class="btn-cdc-rate" (click)="isRateModalOpen = true; dismissCompletedBookingBanner()">
+          <ion-icon name="star"></ion-icon>
+          <span>{{ langService.currentLanguage === 'fil' ? 'I-rate ang Driver' : 'Rate Driver' }}</span>
+        </button>
+        <button type="button" class="btn-cdc-done" (click)="dismissCompletedBookingBanner(); closeBookingFlow()">
+          <span>{{ langService.currentLanguage === 'fil' ? 'Bumalik sa Home' : 'Back to Home' }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== JOYRIDE STATE 1: SEARCHING FOR DRIVER ==================== -->
+    <div *ngIf="myActiveBooking && myActiveBooking.status === 'searching'" class="searching-driver-container">
+      <div class="radar-scan-box">
+        <div class="radar-circle circle-1"></div>
+        <div class="radar-circle circle-2"></div>
+        <div class="radar-circle circle-3"></div>
+        <div class="radar-core-icon">
+          <ion-icon name="bicycle-outline"></ion-icon>
+        </div>
+      </div>
+
+      <div class="searching-meta">
+        <span class="searching-tag">{{ myActiveBooking.bookingNumber }}</span>
+        <h3>{{ langService.t('tracking.searching_title') }}</h3>
+        <p class="searching-sub">
+          {{ langService.t('tracking.searching_sub') }}
+        </p>
+      </div>
+
+      <div class="searching-route-preview">
+        <div class="s-route-point">
+          <span class="s-dot dot-pick"></span>
+          <div class="s-point-text">
+            <span class="s-label">PICKUP</span>
+            <strong>{{ myActiveBooking.pickupName }}</strong>
+          </div>
+        </div>
+        <div class="s-route-line"></div>
+        <div class="s-route-point">
+          <span class="s-dot dot-drop"></span>
+          <div class="s-point-text">
+            <span class="s-label">DESTINATION</span>
+            <strong>{{ myActiveBooking.destinationName }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="searching-stats-grid">
+        <div class="ss-stat">
+          <ion-icon name="navigate-outline"></ion-icon>
+          <strong>{{ myActiveBooking.distanceMeters }}m</strong>
+          <span>{{ langService.t('tracking.distance') }}</span>
+        </div>
+        <div class="ss-stat">
+          <ion-icon name="time-outline"></ion-icon>
+          <strong>~{{ myActiveBooking.estimatedMinutes }} min</strong>
+          <span>{{ langService.t('tracking.duration') }}</span>
+        </div>
+        <div class="ss-stat is-fare">
+          <ion-icon name="cash-outline"></ion-icon>
+          <strong>₱{{ myActiveBooking.fareAmount || totalBookingFare }}.00</strong>
+          <span>{{ langService.t('tracking.fare') }}</span>
+        </div>
+      </div>
+
+      <div class="searching-actions" style="display: flex; flex-direction: column; gap: 10px;">
+        <button type="button" class="btn-cancel-search" (click)="cancelBookingJoyRide(myActiveBooking.id)">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          <span>{{ langService.t('tracking.cancel_request') }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== JOYRIDE STATE 2: NO DRIVER AVAILABLE ==================== -->
+    <div *ngIf="myActiveBooking && myActiveBooking.status === 'no_driver_found'" class="no-driver-container">
+      <div class="no-driver-icon-box">
+        <ion-icon name="alert-circle-outline"></ion-icon>
+      </div>
+      <h3>{{ langService.t('tracking.no_driver_title') }}</h3>
+      <p>{{ langService.t('tracking.no_driver_sub') }}</p>
+
+      <div class="no-driver-actions">
+        <button class="btn-retry-search" (click)="retryBookingJoyRide(myActiveBooking.id)">
+          <ion-icon name="refresh-outline"></ion-icon>
+          <span>{{ langService.t('tracking.retry') }}</span>
+        </button>
+        <button class="btn-cancel-no-driver" (click)="cancelBookingJoyRide(myActiveBooking.id)">
+          <span>{{ langService.t('tracking.cancel') }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== JOYRIDE STATE 3: DRIVER ACCEPTED & TRIP TRACKING ==================== -->
+    <div *ngIf="myActiveBooking && (myActiveBooking.status === 'accepted' || myActiveBooking.status === 'driver_arriving' || myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress')" class="active-trip-container">
+      <!-- Status Banner -->
+      <div class="trip-status-banner" [ngClass]="'banner-' + myActiveBooking.status">
+        <div class="banner-pulse-dot"></div>
+        <div class="banner-text">
+          <strong *ngIf="myActiveBooking.status === 'accepted'">{{ langService.t('tracking.accepted_banner') }}</strong>
+          <strong *ngIf="myActiveBooking.status === 'driver_arriving'">{{ langService.t('tracking.heading_banner') }}</strong>
+          <strong *ngIf="myActiveBooking.status === 'driver_arrived'">{{ langService.t('tracking.arrived_banner') }}</strong>
+          <strong *ngIf="myActiveBooking.status === 'in_progress'">{{ langService.t('tracking.in_progress_banner') }}</strong>
+          <span>{{ myActiveBooking.bookingNumber }}</span>
+        </div>
+      </div>
+
+      <!-- Stepper Indicator -->
+      <div class="trip-stepper">
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'accepted'" [class.step-done]="myActiveBooking.status !== 'accepted'">
+          <div class="step-dot">1</div>
+          <span>Accepted</span>
+        </div>
+        <div class="step-line" [class.line-done]="myActiveBooking.status !== 'accepted'"></div>
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'driver_arriving'" [class.step-done]="myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress'">
+          <div class="step-dot">2</div>
+          <span>Arriving</span>
+        </div>
+        <div class="step-line" [class.line-done]="myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress'"></div>
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'driver_arrived'" [class.step-done]="myActiveBooking.status === 'in_progress'">
+          <div class="step-dot">3</div>
+          <span>Arrived</span>
+        </div>
+        <div class="step-line" [class.line-done]="myActiveBooking.status === 'in_progress'"></div>
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'in_progress'">
+          <div class="step-dot">4</div>
+          <span>On Trip</span>
+        </div>
+      </div>
+
+      <!-- DRIVER ARRIVED HIGH-PRIORITY PROMPT -->
+      <div *ngIf="myActiveBooking.status === 'driver_arrived'" class="driver-arrived-prompt-card">
+        <div class="arrived-pulse-badge">
+          <ion-icon name="pin"></ion-icon>
+        </div>
+        <div class="arrived-content">
+          <h4>{{ langService.currentLanguage === 'fil' ? '📍 Nandito na si Kuya Driver sa Sakayan!' : '📍 Driver Has Arrived at Pickup!' }}</h4>
+          <p>{{ langService.currentLanguage === 'fil' ? 'Nasa iyong pickup point na ang pedicab. Maaari ka nang sumakay!' : 'Your pedicab shuttle is waiting at your pickup point. Please board now!' }}</p>
+        </div>
+      </div>
+
+      <!-- Driver Profile Card -->
+      <div class="assigned-driver-card">
+        <div class="driver-avatar-box">
+          <img [src]="myActiveBooking.assignedDriverPhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'" class="driver-img" [alt]="myActiveBooking.assignedDriverName" />
+          <span class="driver-rating-badge">★ 4.9</span>
+        </div>
+        <div class="driver-details">
+          <h4 class="driver-name">{{ myActiveBooking.assignedDriverName || 'Campus Driver' }}</h4>
+          <span class="driver-vehicle">{{ myActiveBooking.assignedBikeNumber || 'BIKE-003' }} • NEUST E-Pedicab</span>
+          <span class="driver-verified">Verified Campus Transportation Driver</span>
+        </div>
+        <div class="driver-actions-group">
+          <a [href]="'tel:' + (myActiveBooking.assignedDriverPhone || '0917-555-0101')" class="btn-driver-call" title="Tawagan ang Driver">
+            <ion-icon name="call-outline"></ion-icon>
+          </a>
+          <button type="button" class="btn-driver-chat-pill" (click)="openMessengerChat(); selectTab('messages')" title="Message Driver">
+            <ion-icon name="chatbubble-ellipses"></ion-icon>
+            <span class="chat-mini-badge" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Campus Map Tracking Preview (GrabFood Style with Real-time Driver Line) -->
+      <div class="trip-map-container">
+        <!-- Floating Live Status Overlay Pill -->
+        <div class="live-eta-float-badge">
+          <div class="eta-radar-dot"></div>
+          <div class="eta-text">
+            <strong *ngIf="myActiveBooking.status === 'accepted' || myActiveBooking.status === 'driver_arriving'">
+              {{ langService.t('tracking.driver_heading', { dist: myActiveBooking.distanceMeters, min: myActiveBooking.estimatedMinutes }) }}
+            </strong>
+            <strong *ngIf="myActiveBooking.status === 'driver_arrived'">
+              {{ langService.t('tracking.driver_arrived') }}
+            </strong>
+            <strong *ngIf="myActiveBooking.status === 'in_progress'">
+              {{ langService.t('tracking.in_transit', { dest: myActiveBooking.destinationName, dist: myActiveBooking.distanceMeters }) }}
+            </strong>
+          </div>
+        </div>
+
+        <app-campus-map
+          [defaultMode]="'leaflet'"
+          [compactHeight]="false"
+          [showHeaderControls]="false"
+          [customPickupPin]="activeTripPickupPin"
+          [selectedDestinationId]="myActiveBooking.destinationId || selectedDestId"
+          [bicycles]="(stateService.bicycles$ | async) || []"
+          [locations]="(stateService.locations$ | async) || []"
+          [activeBooking]="myActiveBooking">
+        </app-campus-map>
+      </div>
+
+      <!-- Route Recap Card -->
+      <div class="trip-route-card">
+        <div class="tr-point">
+          <span class="tr-dot dot-pick"></span>
+          <div>
+            <span class="tr-label">{{ langService.t('tracking.pick_up') }}</span>
+            <strong>{{ myActiveBooking.pickupName }}</strong>
+          </div>
+        </div>
+        <div class="tr-sep"></div>
+        <div class="tr-point">
+          <span class="tr-dot dot-drop"></span>
+          <div>
+            <span class="tr-label">{{ langService.t('tracking.drop_off') }}</span>
+            <strong>{{ myActiveBooking.destinationName }}</strong>
+          </div>
+        </div>
+        <div class="tr-meta">
+          <span>{{ myActiveBooking.distanceMeters }}m</span>
+          <span>•</span>
+          <span>~{{ myActiveBooking.estimatedMinutes }} mins</span>
+          <span>•</span>
+          <span class="tr-free">{{ langService.t('bar.free_ride') }}</span>
+        </div>
+      </div>
+
+      <!-- Cancel option (if not yet started) -->
+      <div class="trip-action-bar" *ngIf="myActiveBooking.status !== 'in_progress'">
+        <button class="btn-cancel-trip" (click)="cancelBookingJoyRide(myActiveBooking.id)">
+          {{ langService.t('tracking.cancel_trip') }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Ticket Display (If student has a legacy queue entry and no active booking) -->
+    <div *ngIf="!myActiveBooking && myActiveQueue" class="active-ticket-container">
+      <div class="ticket-header-strip">
+        <span class="strip-brand">NEUST BIKEGO PASSENGER PASS</span>
+        <span class="strip-time">{{ myActiveQueue.createdAt | date:'shortTime' }}</span>
+      </div>
+
+      <div class="ticket-core">
+        <span class="ticket-sublabel">OFFICIAL QUEUE NUMBER</span>
+        <h1 class="ticket-large-num">{{ myActiveQueue.queueNumber }}</h1>
+        
+        <div class="ticket-status-bubble" [ngClass]="'status-' + myActiveQueue.status">
+          {{ myActiveQueue.status | uppercase }}
+        </div>
+
+        <!-- Route Nodes -->
+        <div class="ticket-route-nodes">
+          <div class="t-node">
+            <span class="t-node-title">BOARDING AT</span>
+            <strong>{{ myActiveQueue.pickupLocationName }}</strong>
+          </div>
+          <div class="t-node">
+            <span class="t-node-title">DESTINATION</span>
+            <strong>{{ myActiveQueue.destinationName }}</strong>
+          </div>
+        </div>
+
+        <!-- Ticket Metrics -->
+        <div class="ticket-stats-grid">
+          <div class="t-stat">
+            <span class="t-val">#{{ myActiveQueue.position }}</span>
+            <span class="t-lbl">Queue Position</span>
+          </div>
+          <div class="t-stat">
+            <span class="t-val">{{ myActiveQueue.estimatedWaitMinutes }} min</span>
+            <span class="t-lbl">Est. Wait</span>
+          </div>
+          <div class="t-stat">
+            <span class="t-val">{{ myActiveQueue.assignedBikeNumber || 'Pending' }}</span>
+            <span class="t-lbl">Assigned</span>
+          </div>
+        </div>
+
+        <div class="ticket-actions-row">
+          <button class="btn-ticket-qr" (click)="isTicketQROpen = true">
+            <ion-icon name="qr-code-outline"></ion-icon>
+            <span>Display QR Code</span>
+          </button>
+          <button class="btn-ticket-cancel" (click)="cancelQueueAction(myActiveQueue.id)">
+            Cancel Queue
+          </button>
+        </div>
+      </div>
+    </div>
+
+        <!-- Booking / Queueing Form (If student has no active booking and no active queue) -->
+    <div *ngIf="!myActiveBooking && !myActiveQueue && !recentlyCompletedBooking" class="grab-flow-wrapper">
+
+      <!-- ==================== SCREEN 1: GRAB ENTRY ("WHERE TO?") (Matches Image 1) ==================== -->
+      <div *ngIf="grabScreen === 'entry'" class="grab-screen-entry">
+        <!-- Top Banner Header in NEUST Royal Blue (#1d3698) -->
+        <div class="grab-entry-header">
+          <div class="entry-header-nav-row">
+            <button type="button" class="btn-grab-back" (click)="closeBookingFlow()" title="Exit booking">
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <button type="button" class="btn-grab-map-toggle" (click)="selectTab('map')">
+              <ion-icon name="map-outline"></ion-icon>
+              <span>Map</span>
+            </button>
+          </div>
+
+          <!-- Prominent Floating White "Where to?" Search Card with Red Pin -->
+          <div class="grab-where-to-card" (click)="openGrabSearch('destination')">
+            <div class="where-to-pin-dot">
+              <ion-icon name="location"></ion-icon>
+            </div>
+            <span class="where-to-placeholder">Where to?</span>
+          </div>
+
+          <!-- Promo Banner Card: Campus Pedicab Shuttle (Group Ride style) -->
+          <div class="grab-promo-card">
+            <div class="promo-text-col">
+              <h3>{{ langService.t('book.campus_pedicab') }}</h3>
+              <p>{{ langService.t('book.entry_fare', { fare: farePerHead }) }}</p>
+            </div>
+            <img src="assets/images/pedicab-3d.png" alt="Pedicab" class="promo-pedicab-img" />
+          </div>
+        </div>
+
+        <!-- Frequently Used / Popular Locations List (Matches Image 1) -->
+        <div class="grab-entry-body">
+          <div class="entry-section-header">
+            <span>{{ langService.t('book.popular_locations') }}</span>
+          </div>
+
+          <div class="grab-places-list">
+            <div
+              *ngFor="let loc of popularCampusLocations"
+              class="grab-place-row"
+              (click)="selectGrabDestination(loc)">
+              <div class="place-pin-circle">
+                <ion-icon [name]="loc.code === 'TERM' ? 'bicycle-outline' : (loc.code === 'CAF' ? 'restaurant-outline' : 'location-outline')"></ion-icon>
+              </div>
+              <div class="place-info">
+                <strong>{{ loc.name }}</strong>
+                <span>{{ loc.buildingNumber }} • {{ loc.description }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Campus Transit Guarantee Banner -->
+          <div class="grab-service-notice-banner">
+            <div class="notice-left-icon">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+            </div>
+            <div class="notice-copy">
+              <strong>Campus Safety Protected</strong>
+              <p>All pedicabs are GPS tracked by NEUST Transportation Office.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 2: GRAB SEARCH SCREEN (Matches Image 2) ==================== -->
+      <div *ngIf="grabScreen === 'search'" class="grab-screen-search">
+        <!-- Search Header Bar -->
+        <div class="search-top-bar">
+          <button type="button" class="btn-search-back" (click)="backToEntry()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+
+          <div class="now-later-pill">
+            <ion-icon name="flash-outline"></ion-icon>
+            <span>Now</span>
+          </div>
+
+          <button type="button" class="btn-lang-quick" (click)="setAppLanguage(langService.currentLanguage === 'en' ? 'fil' : 'en')">
+            <ion-icon name="globe-outline"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Dual Route Inputs Card (Blue dot Pickup, Red dot Drop-off) -->
+        <div class="search-route-box">
+          <div class="sr-dots-col">
+            <span class="sr-dot dot-pick"></span>
+            <span class="sr-dot-line"></span>
+            <span class="sr-dot dot-drop"></span>
+          </div>
+
+          <div class="sr-inputs-col">
+            <!-- Pickup Row -->
+            <div class="sr-input-row" [class.is-active]="activeSearchTarget === 'pickup'" (click)="activeSearchTarget = 'pickup'">
+              <span class="sr-input-text">{{ customPickupPin?.addressText || 'Current location (NEUST Campus)' }}</span>
+              <button type="button" class="btn-sr-gps" (click)="useCurrentGpsLocation(); $event.stopPropagation()" title="Locate via GPS">
+                <ion-icon name="locate-outline"></ion-icon>
+              </button>
+            </div>
+
+            <div class="sr-divider"></div>
+
+            <!-- Destination Row -->
+            <div class="sr-input-row is-dest" [class.is-active]="activeSearchTarget === 'destination'">
+              <input
+                type="text"
+                class="sr-dest-input"
+                [placeholder]="selectedDestination ? selectedDestination.name : 'Where to? (e.g. CICT, Library, CMBT)'"
+                [(ngModel)]="locationSearchQuery"
+                (focus)="activeSearchTarget = 'destination'"
+                autofocus />
+              <button type="button" class="btn-sr-clear" *ngIf="locationSearchQuery" (click)="locationSearchQuery = ''; $event.stopPropagation()">
+                <ion-icon name="close-circle-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Segmented Tabs (Suggested | Saved | Recent) -->
+        <div class="search-tabs-row">
+          <button type="button" class="s-tab-btn" [class.is-active]="activeSearchTab === 'suggested'" (click)="activeSearchTab = 'suggested'">
+            Suggested
+          </button>
+          <button type="button" class="s-tab-btn" [class.is-active]="activeSearchTab === 'saved'" (click)="activeSearchTab = 'saved'">
+            Saved
+          </button>
+          <button type="button" class="s-tab-btn" [class.is-active]="activeSearchTab === 'recent'" (click)="activeSearchTab = 'recent'">
+            Recent
+          </button>
+        </div>
+
+        <!-- Places List -->
+        <div class="search-places-scroll">
+          <div
+            *ngFor="let loc of filteredCampusLocations"
+            class="search-place-row"
+            (click)="activeSearchTarget === 'pickup' ? selectGrabPickup(loc) : selectGrabDestination(loc)">
+            <div class="sp-icon-circle">
+              <ion-icon [name]="loc.code === 'TERM' ? 'bicycle-outline' : (loc.code === 'CAF' ? 'restaurant-outline' : 'business-outline')"></ion-icon>
+            </div>
+            <div class="sp-text">
+              <strong>{{ loc.name }}</strong>
+              <span>{{ loc.buildingNumber }} • {{ loc.description }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Bottom Pill: Choose on Campus Map (Matches "Choose on GrabMaps" in Image 2!) -->
+        <div class="floating-choose-map-pill-wrap">
+          <button type="button" class="btn-choose-on-map" (click)="openGrabMapPick()">
+            <ion-icon name="map-outline"></ion-icon>
+            <span>Choose on Campus Map</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 3: CHOOSE PICKUP ON MAP (Matches Image 3) ==================== -->
+      <div *ngIf="grabScreen === 'map_pick'" class="grab-screen-map-pick">
+        <!-- Full Screen Campus Leaflet Map -->
+        <div class="map-pick-fullscreen-map">
+          <app-campus-map
+            [defaultMode]="'leaflet'"
+            [compactHeight]="false"
+            [showHeaderControls]="false"
+            [customPickupPin]="customPickupPin"
+            [enableCustomPickupPin]="true"
+            (pickupPinChanged)="onPickupPinChanged($event)"
+            [bicycles]="(stateService.bicycles$ | async) || []"
+            [locations]="(stateService.locations$ | async) || []">
+          </app-campus-map>
+        </div>
+
+        <!-- Floating Top Search Bar (Pick up at?) -->
+        <div class="map-pick-top-bar">
+          <button type="button" class="btn-map-back" (click)="backToSearch()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <div class="map-pick-search-bubble">
+            <span class="mp-dot-blue"></span>
+            <span class="mp-search-text">{{ customPickupPin?.addressText || 'Pick up at?' }}</span>
+          </div>
+        </div>
+
+        <!-- Floating GPS Recenter Button -->
+        <button type="button" class="btn-map-recenter-gps" (click)="useCurrentGpsLocation()" title="My Location">
+          <ion-icon name="locate-outline"></ion-icon>
+        </button>
+
+        <!-- Bottom Slide-Up Sheet (Matches Image 3) -->
+        <div class="map-pick-bottom-card">
+          <div class="card-pull-bar"></div>
+
+          <div class="mp-spot-item">
+            <div class="mp-spot-pin">
+              <ion-icon name="location"></ion-icon>
+            </div>
+            <div class="mp-spot-info">
+              <strong>{{ customPickupPin?.addressText || 'NEUST Sumacab Grounds' }}</strong>
+              <span>Campus Micro-Mobility Zone • Paved Road Accessible</span>
+            </div>
+          </div>
+
+          <div class="mp-add-details-row">
+            <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+            <input
+              type="text"
+              class="input-pickup-landmark"
+              [placeholder]="langService.t('book.pickup_placeholder')"
+              [(ngModel)]="pickupInstructions" />
+          </div>
+
+          <!-- Big Solid Action Button: Choose This Pickup -->
+          <button type="button" class="btn-confirm-this-pickup" (click)="confirmMapPickup()">
+            <span>{{ langService.t('book.choose_pickup') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ==================== SCREEN 4: ROUTE REVIEW & BOTTOM SHEET (Matches Image 4 & 5) ==================== -->
+      <div *ngIf="grabScreen === 'confirm'" class="grab-screen-confirm">
+        <!-- Full Screen Background Map showing Road Route -->
+        <div class="confirm-backdrop-map">
+          <app-campus-map
+            [defaultMode]="'leaflet'"
+            [compactHeight]="false"
+            [showHeaderControls]="false"
+            [customPickupPin]="customPickupPin"
+            [selectedDestinationId]="selectedDestId"
+            [bicycles]="(stateService.bicycles$ | async) || []"
+            [locations]="(stateService.locations$ | async) || []">
+          </app-campus-map>
+        </div>
+
+        <!-- Floating Top Route Indicator with Back Button -->
+        <div class="confirm-floating-top-bar">
+          <button type="button" class="btn-confirm-back" (click)="backToSearch()">
+            <ion-icon name="arrow-back-outline"></ion-icon>
+          </button>
+          <div class="confirm-route-pill" (click)="openGrabSearch('destination')">
+            <span class="cr-dot dot-origin"></span>
+            <span class="cr-name txt-truncate">{{ customPickupPin?.addressText || 'NEUST Terminal' }}</span>
+            <ion-icon name="arrow-forward-outline" class="cr-arrow"></ion-icon>
+            <span class="cr-dot dot-dest"></span>
+            <strong class="cr-name txt-truncate">{{ selectedDestination?.name || 'Destination' }}</strong>
+          </div>
+        </div>
+
+        <!-- Grab-Style Bottom Slide-Up Sheet -->
+        <div class="confirm-grab-bottom-sheet">
+          <div class="sheet-pull-handle"></div>
+
+          <!-- Vehicle Option Card (Matches Image 4 & 5) -->
+          <div class="grab-vehicle-card" [class.is-expanded]="isVehicleDrawerExpanded">
+            <!-- Top Row of Vehicle Card -->
+            <div class="gvc-top-row" (click)="isVehicleDrawerExpanded = !isVehicleDrawerExpanded">
+              <div class="gvc-vehicle-preview">
+                <img src="assets/images/pedicab-3d.png" alt="Pedicab" class="gvc-pedicab-img" />
+              </div>
+
+              <div class="gvc-info-col">
+                <div class="gvc-title-row">
+                  <strong>Campus Pedicab</strong>
+                  <span class="gvc-fare-badge">₱{{ totalBookingFare }}.00</span>
+                </div>
+                <div class="gvc-meta-row">
+                  <span class="meta-item-nowrap">~{{ bookingRouteEta }}m away</span>
+                  <span class="meta-bullet">•</span>
+                  <span class="meta-item-nowrap pax-tag"><ion-icon name="person"></ion-icon> {{ passengerCount }} pax</span>
+                  <span class="meta-bullet">•</span>
+                  <span class="meta-item-nowrap fare-tag">₱{{ farePerHead }}/head Cash</span>
+                </div>
+              </div>
+
+              <ion-icon [name]="isVehicleDrawerExpanded ? 'chevron-up-outline' : 'chevron-down-outline'" class="gvc-caret"></ion-icon>
+            </div>
+
+            <!-- Expandable Capacity Selector Drawer (Real-Time Availability Detected per Seat) -->
+            <div class="gvc-capacity-drawer" *ngIf="isVehicleDrawerExpanded">
+              <!-- 1 Seater -->
+              <div class="drawer-option-row" [class.is-selected]="passengerCount === 1" (click)="setPassengerCount(1)">
+                <div class="dor-label">
+                  <div class="dor-title-line">
+                    <strong>{{ langService.t('book.seater_1') }}</strong>
+                    <span class="dor-avail-pill" [class.is-empty]="getAvailableBikesForCapacity(1) === 0">
+                      <ion-icon name="bicycle-outline"></ion-icon>
+                      {{ getAvailableBikesForCapacity(1) }} {{ langService.t('book.available') }}
+                    </span>
+                  </div>
+                  <span>{{ langService.t('book.seater_1_sub') }}</span>
+                </div>
+                <div class="dor-radio" [class.is-checked]="passengerCount === 1">
+                  <div class="radio-core" *ngIf="passengerCount === 1"></div>
+                </div>
+              </div>
+
+              <!-- 2 Seater -->
+              <div class="drawer-option-row" [class.is-selected]="passengerCount === 2" (click)="setPassengerCount(2)">
+                <div class="dor-label">
+                  <div class="dor-title-line">
+                    <strong>{{ langService.t('book.seater_2') }}</strong>
+                    <span class="dor-avail-pill" [class.is-empty]="getAvailableBikesForCapacity(2) === 0">
+                      <ion-icon name="bicycle-outline"></ion-icon>
+                      {{ getAvailableBikesForCapacity(2) }} {{ langService.t('book.available') }}
+                    </span>
+                  </div>
+                  <span>{{ langService.t('book.seater_2_sub') }}</span>
+                </div>
+                <div class="dor-radio" [class.is-checked]="passengerCount === 2">
+                  <div class="radio-core" *ngIf="passengerCount === 2"></div>
+                </div>
+              </div>
+
+              <!-- 3 Seater -->
+              <div class="drawer-option-row" [class.is-selected]="passengerCount === 3" (click)="setPassengerCount(3)">
+                <div class="dor-label">
+                  <div class="dor-title-line">
+                    <strong>{{ langService.t('book.seater_3') }}</strong>
+                    <span class="dor-avail-pill" [class.is-empty]="getAvailableBikesForCapacity(3) === 0">
+                      <ion-icon name="bicycle-outline"></ion-icon>
+                      {{ getAvailableBikesForCapacity(3) }} {{ langService.t('book.available') }}
+                    </span>
+                  </div>
+                  <span>{{ langService.t('book.seater_3_sub') }}</span>
+                </div>
+                <div class="dor-radio" [class.is-checked]="passengerCount === 3">
+                  <div class="radio-core" *ngIf="passengerCount === 3"></div>
+                </div>
+              </div>
+
+              <!-- 4 Seater -->
+              <div class="drawer-option-row" [class.is-selected]="passengerCount === 4" (click)="setPassengerCount(4)">
+                <div class="dor-label">
+                  <div class="dor-title-line">
+                    <strong>{{ langService.t('book.seater_4') }}</strong>
+                    <span class="dor-avail-pill" [class.is-empty]="getAvailableBikesForCapacity(4) === 0">
+                      <ion-icon name="bicycle-outline"></ion-icon>
+                      {{ getAvailableBikesForCapacity(4) }} {{ langService.t('book.available') }}
+                    </span>
+                  </div>
+                  <span>{{ langService.t('book.seater_4_sub') }}</span>
+                </div>
+                <div class="dor-radio" [class.is-checked]="passengerCount === 4">
+                  <div class="radio-core" *ngIf="passengerCount === 4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment / Pass Row (Matches Cash, Offers, ... in Image 4 & 5) -->
+          <div class="confirm-payment-bar">
+            <div class="pay-method-pill">
+              <ion-icon name="cash-outline"></ion-icon>
+              <span>{{ langService.t('book.cash_label') }}: ₱{{ totalBookingFare }}.00</span>
+            </div>
+            <div class="pay-method-pill">
+              <ion-icon name="pricetag-outline"></ion-icon>
+              <span>₱{{ farePerHead }}.00 {{ langService.t('book.per_head') }}</span>
+            </div>
+            <button type="button" class="btn-more-dots">
+              <ion-icon name="ellipsis-horizontal"></ion-icon>
+            </button>
+          </div>
+
+          <!-- Big Solid Action Button: Book Pedicab (Matches "Book with cash" in Image 4 & 5!) -->
+          <button
+            type="button"
+            class="btn-grab-book-pedicab-action"
+            [disabled]="isPickupInvalid || currentCapacityAvailableBikesCount === 0"
+            (click)="bookPedicabJoyRide()">
+            <span>{{ langService.t('bar.book_btn') }}</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== TAB 4: TRIP HISTORY ==================== -->
+  <div *ngIf="currentTab === 'history'" class="tab-page history-tab-container">
+    <div class="page-title-group">
+      <h2>{{ langService.currentLanguage === 'fil' ? 'Kasaysayan ng Biyahe' : 'Ride & Queue History' }}</h2>
+      <p>{{ langService.currentLanguage === 'fil' ? 'Talaan ng mga natapos at nakaraang biyahe sa loob ng campus' : 'Log of completed and past campus shuttle trips' }}</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!myTripHistory || myTripHistory.length === 0" class="empty-state-card">
+      <ion-icon name="time-outline"></ion-icon>
+      <h4>{{ langService.currentLanguage === 'fil' ? 'Wala pang natapos na biyahe' : 'No trips recorded yet' }}</h4>
+      <p>{{ langService.currentLanguage === 'fil' ? 'Kapag nakasakay ka sa isang pedicab o shuttle, lalabas dito ang tala ng iyong biyahe at pamasahe.' : 'When you complete a pedicab shuttle ride, your trip receipt will appear here.' }}</p>
+    </div>
+
+    <div class="history-list" *ngIf="myTripHistory && myTripHistory.length > 0">
+      <div *ngFor="let trip of myTripHistory" class="history-card" (click)="viewTripDetails(trip)">
+        <div class="h-top">
+          <span class="h-badge">✅ {{ langService.currentLanguage === 'fil' ? 'TAPOS NA' : 'COMPLETED' }}</span>
+          <span class="h-date">{{ trip.startTime | date:'mediumDate' }} • {{ trip.startTime | date:'shortTime' }}</span>
+        </div>
+        <div class="h-route">
+          <div class="hr-pickup">
+            <span class="hr-dot dot-pick"></span>
+            <strong>{{ trip.pickupLocation }}</strong>
+          </div>
+          <ion-icon name="arrow-forward-outline" class="hr-arrow"></ion-icon>
+          <div class="hr-drop">
+            <span class="hr-dot dot-drop"></span>
+            <strong>{{ trip.destination }}</strong>
+          </div>
+        </div>
+        <div class="h-meta">
+          <div class="hm-driver">
+            <ion-icon name="person-circle-outline"></ion-icon>
+            <span>{{ langService.currentLanguage === 'fil' ? 'Driver:' : 'Driver:' }} <strong>{{ trip.driverName }}</strong></span>
+          </div>
+          <span class="hm-bike">{{ trip.bicycleNumber }}</span>
+        </div>
+        <div class="h-fare-row">
+          <span class="h-fare-pill">💵 {{ langService.currentLanguage === 'fil' ? 'Pamasahe:' : 'Fare:' }} <strong>₱10.00</strong> (Cash)</span>
+          <span class="h-rating-pill">⭐ 5.0 Rated</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 5: MESSAGES / DRIVER CHAT ==================== -->
+  <div *ngIf="currentTab === 'messages'" class="tab-page messages-tab-wrapper">
+
+    <!-- 1. MESSAGES INBOX / DRIVER LIST VIEW (When Messenger chat is NOT open) -->
+    <div *ngIf="!isMessengerOpen" class="messages-inbox-screen">
+      
+      <!-- Top Title Header -->
+      <div class="chat-tab-header">
+        <div class="cth-left">
+          <h2>{{ langService.t('chat.title') }}</h2>
+          <span class="cth-sub">
+            <ng-container *ngIf="isDriverAssigned">
+              <span class="online-indicator"></span> 1 Active Driver Connected
+            </ng-container>
+            <ng-container *ngIf="!isDriverAssigned">
+              Direct Driver Messaging
+            </ng-container>
+          </span>
+        </div>
+      </div>
+
+      <!-- STATE A: Driver has accepted booking -> Show Driver Conversation Card (Image match) -->
+      <div *ngIf="isDriverAssigned" class="inbox-conversations-list">
+        <div class="driver-inbox-card" (click)="openMessengerChat()">
+          <div class="dic-avatar-box">
+            <img [src]="myActiveBooking?.assignedDriverPhoto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" alt="Driver" />
+            <span class="dic-online-dot"></span>
+            <span class="dic-role-pill">Rider</span>
+          </div>
+
+          <div class="dic-content">
+            <div class="dic-top-row">
+              <strong>{{ myActiveBooking?.assignedDriverName || 'Kuya Pedro (Campus Rider)' }}</strong>
+              <span class="dic-time">{{ latestDriverMessage?.timestamp || 'Active' }}</span>
+            </div>
+            
+            <div class="dic-bike-row">
+              <span class="dic-bike-plate">{{ myActiveBooking?.assignedBikeNumber || 'BIKE-001' }}</span>
+              <span class="dic-route">{{ myActiveBooking?.pickupName }} ➔ {{ myActiveBooking?.destinationName }}</span>
+            </div>
+
+            <p class="dic-snippet">
+              <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+              <span>{{ latestDriverMessage?.message || 'Tinanggap ang biyahe! I-tap para mag-message...' }}</span>
+            </p>
+          </div>
+
+          <div class="dic-action-end">
+            <span class="dic-unread-badge" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+            <ion-icon name="chevron-forward-outline" class="dic-arrow"></ion-icon>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE B: No active accepted booking -> Empty State Card (No fake old chats) -->
+      <div *ngIf="!isDriverAssigned" class="messages-empty-state-box">
+        <div class="mes-icon-bubble">
+          <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+        </div>
+        <h3>No Active Ride Conversation</h3>
+        <p>When a pedicab accepts your booking, a direct message channel will open here.</p>
+        <button type="button" class="btn-mes-book-ride" (click)="selectTab('queue')">
+          <ion-icon name="bicycle-outline"></ion-icon>
+          <span>Book a Pedicab</span>
+        </button>
+      </div>
+
+    </div>
+
+  </div> <!-- End of TAB 5: MESSAGES / DRIVER CHAT -->
+
+  <!-- ==================== FULL-SCREEN MESSENGER-STYLE DRIVER CHAT (Dedicated View) ==================== -->
+  <div *ngIf="isMessengerOpen && isDriverAssigned" class="messenger-view-overlay">
+    
+    <!-- Messenger Top Header Bar -->
+    <div class="messenger-top-bar">
+      <button type="button" class="btn-messenger-back" (click)="closeMessengerChat()" title="Bumalik">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </button>
+
+      <div class="messenger-header-profile" (click)="selectTab('queue')">
+        <div class="mhp-avatar-wrap">
+          <img [src]="myActiveBooking?.assignedDriverPhoto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" alt="Driver" />
+          <span class="mhp-online-dot"></span>
+        </div>
+        <div class="mhp-text">
+          <h4>{{ myActiveBooking?.assignedDriverName || 'Kuya Driver' }}</h4>
+          <span class="mhp-sub">
+            <span class="mhp-plate">{{ myActiveBooking?.assignedBikeNumber || 'BIKE-001' }}</span>
+            <span class="mhp-online-text">• {{ langService.t('chat.driver_online') }}</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="messenger-actions-right">
+        <a *ngIf="myActiveBooking?.assignedDriverPhone" [href]="'tel:' + myActiveBooking?.assignedDriverPhone" class="btn-messenger-call" title="Tawagan si Driver">
+          <ion-icon name="call"></ion-icon>
+        </a>
+      </div>
+    </div>
+
+    <!-- Active Trip Context Strip -->
+    <div class="messenger-route-strip">
+      <div class="mrs-badge">Active Trip</div>
+      <div class="mrs-route-text">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>{{ myActiveBooking?.pickupName }} ➔ {{ myActiveBooking?.destinationName }}</span>
+      </div>
+      <div class="mrs-fare">₱{{ myActiveBooking?.fareAmount || 10 }}.00</div>
+    </div>
+
+    <!-- Messenger Messages Stream -->
+    <div class="messenger-stream" #messengerStream>
+      <div class="messenger-security-notice">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>Direct chat with your verified NEUST pedicab rider. Chat stays active during your ride.</span>
+      </div>
+
+      <div *ngFor="let msg of activeBookingMessages" class="messenger-msg-row" [class.is-mine]="msg.senderRole === 'student'" [class.is-driver]="msg.senderRole === 'driver'">
+        <img *ngIf="msg.senderRole === 'driver'" [src]="myActiveBooking?.assignedDriverPhoto || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" class="mini-driver-avatar" alt="Driver" />
+
+        <div class="messenger-bubble-col">
+          <div class="messenger-bubble">
+            <p>{{ msg.message }}</p>
+          </div>
+          <span class="msg-meta-row">
+            <span class="meta-time">{{ msg.timestamp }}</span>
+            <span class="meta-status" *ngIf="msg.senderRole === 'student'">• Delivered</span>
+          </span>
+        </div>
+      </div>
+
+      <div *ngIf="activeBookingMessages.length === 0" class="messenger-empty-hint">
+        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+        <p>Maaari mo nang imensahe si Kuya Driver patungkol sa iyong pickup location o hintayan.</p>
+      </div>
+    </div>
+
+    <!-- Messenger Quick Response Chips -->
+    <div class="messenger-quick-chips">
+      <button type="button" class="mq-chip" (click)="sendQuickMessage(langService.t('chat.quick_1'))">
+        {{ langService.t('chat.quick_1') }}
+      </button>
+      <button type="button" class="mq-chip" (click)="sendQuickMessage(langService.t('chat.quick_2'))">
+        {{ langService.t('chat.quick_2') }}
+      </button>
+      <button type="button" class="mq-chip" (click)="sendQuickMessage(langService.t('chat.quick_3'))">
+        {{ langService.t('chat.quick_3') }}
+      </button>
+      <button type="button" class="mq-chip" (click)="sendQuickMessage(langService.t('chat.quick_4'))">
+        {{ langService.t('chat.quick_4') }}
+      </button>
+    </div>
+
+    <!-- Messenger Footer Input Bar (Messenger aesthetic) -->
+    <div class="messenger-input-footer">
+      <div class="mif-input-wrapper">
+        <input
+          type="text"
+          [(ngModel)]="chatInputText"
+          (keyup.enter)="sendStudentMessage()"
+          placeholder="Aa"
+          class="mif-text-input" />
+      </div>
+
+      <button
+        type="button"
+        class="btn-messenger-send"
+        [class.has-text]="chatInputText.trim().length > 0"
+        (click)="chatInputText.trim().length > 0 ? sendStudentMessage() : sendQuickMessage('👍')">
+        <ion-icon *ngIf="chatInputText.trim().length > 0" name="send"></ion-icon>
+        <ion-icon *ngIf="!chatInputText.trim().length" name="thumbs-up"></ion-icon>
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- ==================== MODERN FIXED BOTTOM NAVIGATION BAR (Hidden on Solo Booking Page or Open Messenger) ==================== -->
+  <div class="bottom-nav-bar" *ngIf="currentTab !== 'queue' && !isMessengerOpen">
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'home'" (click)="selectTab('home')">
+      <div class="nav-icon-badge-box">
+        <ion-icon [name]="currentTab === 'home' ? 'bicycle' : 'bicycle-outline'"></ion-icon>
+      </div>
+      <span>{{ langService.t('nav.home') }}</span>
+    </button>
+
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'map'" (click)="selectTab('map')">
+      <div class="nav-icon-badge-box">
+        <ion-icon [name]="currentTab === 'map' ? 'map' : 'map-outline'"></ion-icon>
+      </div>
+      <span>{{ langService.t('nav.map') }}</span>
+    </button>
+
+    <button class="bottom-nav-btn nav-btn-center" (click)="selectTab('queue')">
+      <div class="nav-center-bubble" [class.has-active-ticket]="myActiveQueue">
+        <ion-icon name="ticket-outline"></ion-icon>
+        <span class="bubble-badge" *ngIf="myActiveQueue">1</span>
+      </div>
+      <span class="center-btn-label">{{ langService.t('nav.queue') }}</span>
+    </button>
+
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'history'" (click)="selectTab('history')">
+      <div class="nav-icon-badge-box">
+        <ion-icon [name]="currentTab === 'history' ? 'time' : 'time-outline'"></ion-icon>
+      </div>
+      <span>{{ langService.t('nav.history') }}</span>
+    </button>
+
+    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'messages'" (click)="selectTab('messages')">
+      <div class="nav-icon-badge-box">
+        <ion-icon [name]="currentTab === 'messages' ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'"></ion-icon>
+        <span class="bubble-badge badge-msg" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+      </div>
+      <span>{{ langService.t('nav.messages') }}</span>
+    </button>
+  </div>
+
+  <!-- QR PASS MODAL -->
+  <ion-modal [isOpen]="isTicketQROpen" (didDismiss)="isTicketQROpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar color="primary">
+          <ion-title>Digital Shuttle Boarding Pass</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isTicketQROpen = false">
+              <ion-icon name="close-circle-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding text-center">
+        <div class="qr-dialog-content" *ngIf="myActiveQueue">
+          <h2 class="qr-ticket-num">{{ myActiveQueue.queueNumber }}</h2>
+          <p class="qr-subtitle">{{ myActiveQueue.studentName }} ({{ myActiveQueue.studentIdNumber }})</p>
+          
+          <div class="qr-box-simulated">
+            <ion-icon name="qr-code-outline" class="large-qr-icon"></ion-icon>
+            <span>Scan at shuttle scanner upon boarding</span>
+          </div>
+
+          <div class="qr-route-meta">
+            <span>{{ myActiveQueue.pickupLocationName }} ➔ {{ myActiveQueue.destinationName }}</span>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ==================== LOCATION SEARCH SHEET MODAL ==================== -->
+  <ion-modal [isOpen]="isSearchModalOpen" (didDismiss)="isSearchModalOpen = false" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1.0]">
+    <ng-template>
+      <div class="search-modal-container">
+        <div class="search-modal-header">
+          <div class="search-input-wrapper">
+            <ion-icon name="search-outline" class="search-leading-icon"></ion-icon>
+            <input 
+              type="text" 
+              class="search-text-input" 
+              [(ngModel)]="destinationSearchText" 
+              [placeholder]="searchTargetMode === 'pickup' ? 'Maghanap ng pickup location sa campus...' : 'Saan ka pupunta sa campus?'" 
+              autofocus />
+            <button class="clear-search-btn" *ngIf="destinationSearchText" (click)="destinationSearchText = ''">
+              <ion-icon name="close-circle-outline"></ion-icon>
+            </button>
+          </div>
+          <button class="close-search-btn" (click)="isSearchModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Mode badge header -->
+        <div class="search-mode-banner">
+          <span class="mode-tag" [class.mode-pickup]="searchTargetMode === 'pickup'">
+            {{ searchTargetMode === 'pickup' ? 'Pumili ng Pickup Location' : 'Pumili ng Destination' }}
+          </span>
+          <span class="mode-hint">I-type ang pangalan ng building, opisina, o gate</span>
+        </div>
+
+        <!-- Quick Destination Pills -->
+        <div class="search-quick-tags">
+          <span class="quick-tag-label">Frequent:</span>
+          <button class="quick-loc-pill" (click)="destinationSearchText = 'CICT'">CICT</button>
+          <button class="quick-loc-pill" (click)="destinationSearchText = 'Gate'">Terminal Gate</button>
+          <button class="quick-loc-pill" (click)="destinationSearchText = 'Library'">Library</button>
+          <button class="quick-loc-pill" (click)="destinationSearchText = 'Engineering'">Engineering</button>
+          <button class="quick-loc-pill" (click)="destinationSearchText = 'Admin'">Admin</button>
+        </div>
+
+        <!-- Filtered Campus Locations List -->
+        <div class="search-locations-list">
+          <div 
+            *ngFor="let loc of searchFilteredLocations" 
+            class="search-location-item" 
+            (click)="selectLocationFromSearch(loc)">
+            <div class="loc-item-icon-box">
+              <span class="loc-bldg-badge">{{ loc.buildingNumber }}</span>
+            </div>
+            <div class="loc-item-info">
+              <h4 class="loc-item-name">{{ loc.name }}</h4>
+              <p class="loc-item-desc">{{ loc.description }}</p>
+            </div>
+            <div class="loc-item-action">
+              <span class="loc-code-tag">{{ loc.code }}</span>
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+            </div>
+          </div>
+
+          <div class="empty-search-state" *ngIf="searchFilteredLocations.length === 0">
+            <ion-icon name="search-outline"></ion-icon>
+            <p>Walang nahanap na lokasyon sa campus para sa "{{ destinationSearchText }}".</p>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ==================== RATE RIDE & FEEDBACK MODAL (Reference Image 2 Screen 8) ==================== -->
+  <ion-modal [isOpen]="isRateModalOpen" (didDismiss)="isRateModalOpen = false" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]">
+    <ng-template>
+      <div class="rate-modal-container">
+        <div class="rate-modal-header">
+          <div class="rate-modal-bar"></div>
+          <h3 class="rate-modal-title">Heading to Destination</h3>
+          <p class="rate-modal-subtitle">Give rating and optional trip feedback</p>
+        </div>
+
+        <!-- Driver Meta Snippet -->
+        <div class="rate-driver-card">
+          <img 
+            [src]="activeTrackingSession?.driverPhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'" 
+            class="rate-driver-avatar" 
+            alt="Driver" />
+          <div class="rate-driver-meta">
+            <h4>{{ activeTrackingSession?.driverName || myActiveQueue?.assignedDriverName || 'Pedro Ramirez' }}</h4>
+            <span>{{ activeTrackingSession?.bikeNumber || myActiveQueue?.assignedBikeNumber || 'BIKE-001' }} • Sumacab Shuttle</span>
+          </div>
+        </div>
+
+        <!-- Interactive 5-Star Rating -->
+        <div class="stars-rating-row">
+          <button 
+            type="button"
+            *ngFor="let s of [1, 2, 3, 4, 5]" 
+            class="star-btn" 
+            [class.is-starred]="selectedRating >= s" 
+            (click)="selectedRating = s">
+            <ion-icon [name]="selectedRating >= s ? 'star' : 'star-outline'"></ion-icon>
+          </button>
+        </div>
+        <span class="rating-number-lbl">{{ selectedRating }} out of 5 stars</span>
+
+        <!-- Quick Compliment Tags -->
+        <div class="rating-tags-wrap">
+          <button 
+            *ngFor="let tag of ratingTags" 
+            class="compliment-chip" 
+            [class.is-selected]="selectedRatingTags.includes(tag)" 
+            (click)="toggleRatingTag(tag)">
+            {{ tag }}
+          </button>
+        </div>
+
+        <!-- Submit Button -->
+        <button class="btn-done-rating" (click)="submitRating()">
+          Done
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ==================== DIGITAL BIKE PASS MODAL (Reference Image 1 Screen 2) ==================== -->
+  <ion-modal [isOpen]="isBikePassModalOpen" (didDismiss)="isBikePassModalOpen = false" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1.0]">
+    <ng-template>
+      <div class="bikepass-modal-container">
+        <div class="bikepass-header">
+          <h3>Bike pass</h3>
+          <button class="modal-x-btn" (click)="isBikePassModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <!-- Virtual Holographic Student Pass Card -->
+        <div class="virtual-pass-card">
+          <div class="pass-card-top">
+            <div class="pass-chip-icon">
+              <ion-icon name="bicycle"></ion-icon>
+            </div>
+            <span class="pass-hologram">NEUST TRANSIT</span>
+          </div>
+          <div class="pass-card-holder">
+            <span class="pass-holder-label">CARD HOLDER</span>
+            <h4 class="pass-holder-name">{{ authService.currentUser.fullName }}</h4>
+            <span class="pass-holder-id">{{ authService.currentUser.idNumber }} • {{ authService.currentUser.department }}</span>
+          </div>
+          <div class="pass-card-bottom">
+            <div class="pass-status-pill">
+              <span class="status-dot"></span>
+              <span>ACTIVE PASS</span>
+            </div>
+            <span class="pass-validity">1ST SEM 2026-2027</span>
+          </div>
+        </div>
+
+        <!-- Pass Meta Summary -->
+        <div class="bikepass-metrics-row">
+          <div class="bikepass-metric-box">
+            <span class="bp-val">0.00 ₱</span>
+            <span class="bp-lbl">Campus Fare (Free Transit)</span>
+          </div>
+          <div class="bikepass-metric-box">
+            <span class="bp-val">Active</span>
+            <span class="bp-lbl">Semester Subscription</span>
+          </div>
+        </div>
+
+        <!-- Quick Activity Section -->
+        <div class="pass-activity-section">
+          <h4 class="section-title">My Recent Activity</h4>
+          <div class="activity-trip-list">
+            <div *ngFor="let trip of myTripHistory.slice(0, 3)" class="activity-trip-item">
+              <div class="trip-item-icon">
+                <ion-icon name="bicycle-outline"></ion-icon>
+              </div>
+              <div class="trip-item-info">
+                <strong>{{ trip.pickupLocation }} ➔ {{ trip.destination }}</strong>
+                <span>{{ trip.endTime | date:'mediumDate' }} • {{ trip.bicycleNumber }} ({{ trip.driverName }})</span>
+              </div>
+              <span class="trip-completed-tag">Done</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-bikepass-done" (click)="isBikePassModalOpen = false">
+          Close Pass
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ROLE SWITCHER MODAL -->
+  <ion-modal [isOpen]="isRoleModalOpen" (didDismiss)="isRoleModalOpen = false" [initialBreakpoint]="0.52" [breakpoints]="[0, 0.52]">
+    <ng-template>
+      <div class="modal-sheet-container">
+        <div class="modal-sheet-header">
+          <div class="sheet-title-group">
+            <h3>Switch User Role</h3>
+            <p>Experience NEUST BikeGo from any role perspective.</p>
+          </div>
+          <button class="sheet-close-btn" (click)="isRoleModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="role-cards-grid">
+          <!-- Student -->
+          <div 
+            class="role-option-card"
+            [class.is-selected]="authService.role === 'student'"
+            (click)="selectRole('student')">
+            <div class="role-icon-circle icon-student">
+              <ion-icon name="school-outline"></ion-icon>
+            </div>
+            <div class="role-card-info">
+              <h4>Student / Passenger</h4>
+              <p>Maria Santos • CICT (Bldg 25)</p>
+            </div>
+          </div>
+
+          <!-- Driver -->
+          <div 
+            class="role-option-card"
+            [class.is-selected]="authService.role === 'driver'"
+            (click)="selectRole('driver')">
+            <div class="role-icon-circle icon-driver">
+              <ion-icon name="bicycle-outline"></ion-icon>
+            </div>
+            <div class="role-card-info">
+              <h4>Shuttle Operator / Driver</h4>
+              <p>Juan Dela Cruz • BIKE-003</p>
+            </div>
+          </div>
+
+          <!-- Admin -->
+          <div 
+            class="role-option-card"
+            [class.is-selected]="authService.role === 'admin'"
+            (click)="selectRole('admin')">
+            <div class="role-icon-circle icon-admin">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+            </div>
+            <div class="role-card-info">
+              <h4>Campus Administrator</h4>
+              <p>Engr. Roberto Bautista • Fleet Logistics</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- TOAST NOTIFICATION -->
+  <ion-toast
+    [isOpen]="showToast"
+    [message]="toastMessage"
+    [duration]="3000"
+    (didDismiss)="showToast = false"
+    position="top">
+  </ion-toast>
+
+</div>

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Ionic App</title>
+    <title>NEUST BikeGo — Campus Bicycle Shuttle System</title>
 
     <base href="/" />
 
@@ -15,6 +15,17 @@
     <meta name="msapplication-tap-highlight" content="no" />
 
     <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
+
+    <!-- Leaflet 1.9.4 CSS & JS (Multi-CDN resilient) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      if (typeof window.L === 'undefined') {
+        document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"><\/script>');
+      }
+    </script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <!-- add to homescreen for ios -->
     <meta name="mobile-web-app-capable" content="yes" />

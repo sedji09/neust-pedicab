@@ -1,0 +1,1169 @@
+<div class="driver-container">
+
+  <!-- ==================== JOYRIDE INCOMING BOOKING REQUEST OVERLAY ==================== -->
+  <div *ngIf="incomingBookingRequest as req" class="incoming-request-overlay">
+    <div class="incoming-card">
+      <div class="incoming-header">
+        <div class="header-urgent-pulse"></div>
+        <div class="header-titles">
+          <span class="request-tag">⚡ BAGONG SAKAY REQUEST</span>
+          <h3>{{ req.studentName }}</h3>
+          <span class="req-id">
+            ID: {{ req.studentIdNumber }} • 
+            <span class="req-pax-badge">
+              <ion-icon name="people"></ion-icon> 
+              {{ req.passengerCount || 1 }} {{ (req.passengerCount || 1) === 1 ? 'Pasahero' : 'Pasahero' }}
+            </span>
+          </span>
+        </div>
+        <div class="countdown-badge">
+          <span class="countdown-sec">{{ requestRemainingSeconds }}s</span>
+        </div>
+      </div>
+
+      <!-- Animated Countdown Bar -->
+      <div class="countdown-bar-wrap">
+        <div class="countdown-bar-fill" [style.width.%]="(requestRemainingSeconds / 20) * 100"></div>
+      </div>
+
+      <!-- Route Details (Malinaw na Sakayan at Babaan) -->
+      <div class="incoming-route-box">
+        <div class="ir-point">
+          <span class="ir-dot dot-pick"></span>
+          <div class="ir-info">
+            <span class="ir-label">{{ isFil ? 'SAKAYAN (PICKUP POINT • ~' + req.distanceMeters + 'm layo)' : 'PICKUP POINT (~' + req.distanceMeters + 'm away)' }}</span>
+            <strong>{{ req.pickupName }}</strong>
+          </div>
+        </div>
+        <div class="ir-sep"></div>
+        <div class="ir-point">
+          <span class="ir-dot dot-drop"></span>
+          <div class="ir-info">
+            <span class="ir-label">{{ isFil ? 'BABAAN (DESTINATION • ~' + req.estimatedMinutes + ' mins)' : 'DESTINATION (~' + req.estimatedMinutes + ' mins)' }}</span>
+            <strong>{{ req.destinationName }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sisingiling Pamasahe (Cash) Highlight -->
+      <div class="incoming-fare-banner">
+        <div class="ifb-left">
+          <ion-icon name="cash-outline"></ion-icon>
+          <div class="ifb-text">
+            <span class="ifb-title">{{ isFil ? 'Sisingiling Pamasahe (Cash):' : 'Fare to Collect (Cash):' }}</span>
+            <span class="ifb-sub">{{ req.passengerCount || 1 }} {{ isFil ? 'Pasahero' : 'Passenger(s)' }}</span>
+          </div>
+        </div>
+        <strong class="ifb-fare">₱{{ req.fareAmount || ((req.passengerCount || 1) * 10) }}.00</strong>
+      </div>
+
+      <!-- Optional Passenger Instructions -->
+      <div *ngIf="req.pickupInstructions" class="incoming-note">
+        <ion-icon name="chatbubble-outline"></ion-icon>
+        <div class="in-text">
+          <span class="in-label">{{ isFil ? 'Bilin ng Estudyante:' : 'Passenger Note:' }}</span>
+          <strong>"{{ req.pickupInstructions }}"</strong>
+        </div>
+      </div>
+
+      <!-- Accept / Decline Buttons (Malalaking Pindutan para sa Driver) -->
+      <div class="incoming-actions">
+        <button type="button" class="btn-decline-ride" (click)="rejectIncomingBooking(req)">
+          <ion-icon name="close-circle-outline"></ion-icon>
+          <span>{{ isFil ? 'Tanggihan' : 'Decline' }}</span>
+        </button>
+        <button type="button" class="btn-accept-ride" (click)="acceptIncomingBooking(req)">
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <span>{{ isFil ? 'TANGGAPIN ANG SAKAY' : 'ACCEPT RIDE' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 1: BIYAHE / DASHBOARD ==================== -->
+  <div *ngIf="currentTab === 'dashboard'" class="tab-page ion-padding">
+
+    <!-- ==============================================================
+         A. DEDICATED ACTIVE TRIP VIEW
+         (Lalabas LAMANG kapag may in-accept na sakay o may active trip)
+         ============================================================== -->
+    <div *ngIf="(myActiveBooking || activeTrip)" class="driver-active-trip-view">
+
+      <!-- Case 1: JOYRIDE BOOKING ACTIVE (In-accept na booking mula sa estudyante) -->
+      <div *ngIf="myActiveBooking as booking" class="driver-active-booking-hero">
+        <div class="abh-head">
+          <div class="abh-status-pill" [ngClass]="'status-' + booking.status">
+            <span *ngIf="booking.status === 'accepted'">{{ isFil ? '▶ PAPUNTA SA PICKUP' : '▶ EN ROUTE TO PICKUP' }}</span>
+            <span *ngIf="booking.status === 'driver_arriving'">{{ isFil ? '🚗 PAPARATING SA SAKAYAN' : '🚗 ARRIVING AT PICKUP' }}</span>
+            <span *ngIf="booking.status === 'driver_arrived'">{{ isFil ? '📍 NASA SAKAYAN NA' : '📍 ARRIVED AT PICKUP' }}</span>
+            <span *ngIf="booking.status === 'in_progress'">{{ isFil ? '🚀 BUMABYAHE NA PATUNGO SA DESTINASYON' : '🚀 IN TRANSIT TO DESTINATION' }}</span>
+            <span *ngIf="booking.status === 'completed'">{{ isFil ? '✅ NATAPOS NA ANG BIYAHE' : '✅ TRIP COMPLETED' }}</span>
+          </div>
+          <span class="abh-code">{{ booking.bookingNumber }}</span>
+        </div>
+
+        <!-- Passenger Details & Quick Contact Buttons -->
+        <div class="abh-passenger-row">
+          <div class="abh-avatar">
+            <ion-icon name="person-outline"></ion-icon>
+          </div>
+          <div class="abh-passenger-info">
+            <h4>{{ booking.studentName }}</h4>
+            <span>ID: {{ booking.studentIdNumber }} • <strong>{{ booking.passengerCount || 1 }} {{ isFil ? 'Pasahero' : 'Passenger(s)' }}</strong></span>
+          </div>
+          <div class="abh-contact-actions">
+            <a [href]="'tel:' + (booking.studentPhone || '0927-123-4567')" class="btn-call-passenger" [title]="isFil ? 'Tawagan ang Estudyante' : 'Call Passenger'">
+              <ion-icon name="call-outline"></ion-icon>
+              <span>{{ isFil ? 'Tawagan' : 'Call' }}</span>
+            </a>
+            <button type="button" class="btn-chat-passenger" (click)="openDriverChat()" [title]="isFil ? 'I-chat ang Estudyante' : 'Message Passenger'">
+              <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+              <span>{{ isFil ? 'Mensahe' : 'Message' }}</span>
+              <span class="chat-badge-dot" *ngIf="unreadStudentMessagesCount > 0">{{ unreadStudentMessagesCount }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Route Visual Step -->
+        <div class="abh-route-summary">
+          <div class="ars-step">
+            <span class="ars-dot dot-pick"></span>
+            <div>
+              <span class="ars-label">{{ isFil ? 'KUKUNIN SA (PICKUP):' : 'PICKUP LOCATION:' }}</span>
+              <strong>{{ booking.pickupName }}</strong>
+            </div>
+          </div>
+          <div class="ars-sep"></div>
+          <div class="ars-step">
+            <span class="ars-dot dot-drop"></span>
+            <div>
+              <span class="ars-label">{{ isFil ? 'DADALHIN SA (DESTINATION):' : 'DESTINATION:' }}</span>
+              <strong>{{ booking.destinationName }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student's Special Instructions Note (if any) -->
+        <div *ngIf="booking.pickupInstructions" class="abh-special-note">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          <div>
+            <span>{{ isFil ? 'Bilin ng Pasahero:' : 'Passenger Note:' }}</span>
+            <strong>"{{ booking.pickupInstructions }}"</strong>
+          </div>
+        </div>
+
+        <!-- Sisingiling Pamasahe (Cash) Highlight Box -->
+        <div class="abh-cash-collect-card">
+          <div class="acc-left">
+            <ion-icon name="cash-outline"></ion-icon>
+            <div class="acc-info">
+              <span class="acc-title">{{ isFil ? 'Sisingiling Pamasahe sa Pasahero (Cash)' : 'Fare to Collect (Cash)' }}</span>
+              <span class="acc-sub">{{ booking.passengerCount || 1 }} {{ isFil ? 'Pasahero' : 'Passenger(s)' }}</span>
+            </div>
+          </div>
+          <strong class="acc-amount">₱{{ booking.fareAmount || ((booking.passengerCount || 1) * 10) }}.00</strong>
+        </div>
+
+        <!-- Mini Live Navigation Map Preview -->
+        <div class="abh-map-box">
+          <app-campus-map
+            [defaultMode]="'leaflet'"
+            [compactHeight]="true"
+            [showHeaderControls]="false"
+            [bicycles]="(stateService.bicycles$ | async) || []"
+            [locations]="(stateService.locations$ | async) || []"
+            [activeBooking]="booking">
+          </app-campus-map>
+        </div>
+
+        <!-- ==============================================================
+             KASALUKUYANG NAKASAKAY AT BAKANTENG UPUAN (DITO LANG MAKIKITA!)
+             ============================================================== -->
+        <div class="large-counter-card">
+          <div class="counter-card-header">
+            <span class="c-title">{{ isFil ? 'KASALUKUYANG NAKASAKAY SA SHUTTLE' : 'PASSENGERS ABOARD SHUTTLE' }}</span>
+            <span class="c-tag" [class.c-full]="myBicycle.passengerCount >= myBicycle.maxCapacity">
+              {{ myBicycle.passengerCount >= myBicycle.maxCapacity ? (isFil ? '🔴 PUNO NA' : '🔴 FULL') : (isFil ? '🟢 MAY BAKANTE' : '🟢 SEATS OPEN') }}
+            </span>
+          </div>
+
+          <div class="counter-display-box">
+            <div class="c-metric">
+              <span class="c-label">{{ isFil ? 'BILANG NG NAKASAKAY' : 'BOARDED PASSENGERS' }}</span>
+              <span class="c-value">{{ myBicycle.passengerCount }} / {{ myBicycle.maxCapacity }}</span>
+            </div>
+            <div class="c-divider"></div>
+            <div class="c-metric">
+              <span class="c-label">{{ isFil ? 'BAKANTENG UPUAN' : 'OPEN SEATS' }}</span>
+              <span class="c-value c-free">{{ myBicycle.maxCapacity - myBicycle.passengerCount }}</span>
+            </div>
+          </div>
+
+          <!-- Malalaking Pindutan (-1 at +1) para ma-adjust ang sakay habang bumibiyahe -->
+          <div class="counter-actions-row">
+            <button 
+              type="button"
+              class="btn-c-touch btn-minus" 
+              [disabled]="myBicycle.passengerCount <= 0"
+              (click)="decrementPassenger()">
+              <ion-icon name="remove-outline"></ion-icon>
+              <span>{{ isFil ? 'Bawasan (-1)' : 'Alight (-1)' }}</span>
+            </button>
+            <button 
+              type="button"
+              class="btn-c-touch btn-plus" 
+              [disabled]="myBicycle.passengerCount >= myBicycle.maxCapacity"
+              (click)="incrementPassenger()">
+              <ion-icon name="add-outline"></ion-icon>
+              <span>{{ isFil ? 'Dagdagan (+1)' : 'Board (+1)' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- MALAKI AT MALINAW NA STEP-BY-STEP ACTION BUTTON + DIRECT DROP-OFF BUTTON -->
+        <div class="abh-cta-wrap">
+          <button 
+            *ngIf="booking.status === 'accepted'" 
+            type="button"
+            class="btn-trip-progress btn-step-blue"
+            (click)="advanceBookingStatus(booking, 'driver_arriving')">
+            <ion-icon name="navigate-outline"></ion-icon>
+            <div class="btp-text">
+              <strong>{{ isFil ? 'PUMUNTA NA SA PICKUP POINT' : 'HEAD TO PICKUP POINT' }}</strong>
+              <span>{{ isFil ? 'Pindutin kapag papunta ka na sa estudyante' : 'Tap when en route to passenger' }}</span>
+            </div>
+          </button>
+
+          <button 
+            *ngIf="booking.status === 'driver_arriving'" 
+            type="button"
+            class="btn-trip-progress btn-step-green"
+            (click)="advanceBookingStatus(booking, 'driver_arrived')">
+            <ion-icon name="location-outline"></ion-icon>
+            <div class="btp-text">
+              <strong>{{ isFil ? 'NANDITO NA AKO SA SAKAYAN (ARRIVED)' : 'ARRIVED AT PICKUP LOCATION' }}</strong>
+              <span>{{ isFil ? 'Pindutin para maabisuhan si ' + booking.studentName : 'Tap to notify ' + booking.studentName }}</span>
+            </div>
+          </button>
+
+          <button 
+            *ngIf="booking.status === 'driver_arrived'" 
+            type="button"
+            class="btn-trip-progress btn-step-amber"
+            (click)="advanceBookingStatus(booking, 'in_progress')">
+            <ion-icon name="play-outline"></ion-icon>
+            <div class="btp-text">
+              <strong>{{ isFil ? 'NAKASAKAY NA • SIMULAN ANG BIYAHE' : 'PASSENGER BOARDED • START TRIP' }}</strong>
+              <span>{{ isFil ? 'Pindutin kapag sumakay na at bibiyahe na kayo' : 'Tap once passenger is aboard to begin trip' }}</span>
+            </div>
+          </button>
+
+          <!-- Direct Drop-Off / Complete Trip Button (Available anytime during the trip so driver can mark dropped off immediately) -->
+          <button 
+            type="button"
+            class="btn-trip-progress btn-step-complete"
+            [style.marginTop.px]="booking.status !== 'in_progress' ? 10 : 0"
+            (click)="dropOffBookingAction(booking)">
+            <ion-icon name="checkmark-done-outline"></ion-icon>
+            <div class="btp-text">
+              <strong>{{ isFil ? 'NAIBABA / NAHATID NA SI ' + (booking.studentName | uppercase) + ' (DROP OFF)' : 'DROP OFF ' + (booking.studentName | uppercase) + ' (COMPLETE TRIP)' }}</strong>
+              <span>{{ isFil ? 'Singilin: ₱' + (booking.fareAmount || ((booking.passengerCount || 1) * 10)) + '.00 • Balik sa 4/4 Available na Upuan' : 'Collect: ₱' + (booking.fareAmount || ((booking.passengerCount || 1) * 10)) + '.00 • Reset to 4/4 Open Seats' }}</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Case 2: ACTIVE SHUTTLE LOOP TRIP (Kung walang Joyride booking pero may active shuttle loop trip) -->
+      <div *ngIf="activeTrip && !myActiveBooking" class="driver-trip-banner">
+        <div class="dt-top">
+          <div>
+            <span class="dt-badge">{{ isFil ? '● KASALUKUYANG BUMABYAHE' : '● CURRENTLY ON TRIP' }}</span>
+            <h3 class="dt-trip-id">{{ activeTrip.tripNumber }}</h3>
+          </div>
+          <button type="button" class="btn-dt-manage" (click)="currentTab = 'trip'">
+            {{ isFil ? 'Buksan ang Mapa' : 'Open Campus Map' }}
+          </button>
+        </div>
+
+        <div class="dt-route-row">
+          <span>{{ isFil ? 'Mula:' : 'From:' }} <strong>{{ activeTrip.pickupLocation }}</strong></span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ isFil ? 'Patungo:' : 'To:' }} <strong>{{ activeTrip.destination }}</strong></span>
+        </div>
+
+        <!-- Capacity Counter sa Loob ng Active Trip -->
+        <div class="large-counter-card">
+          <div class="counter-card-header">
+            <span class="c-title">{{ isFil ? 'KASALUKUYANG NAKASAKAY SA SHUTTLE' : 'PASSENGERS ABOARD SHUTTLE' }}</span>
+            <span class="c-tag" [class.c-full]="myBicycle.passengerCount >= myBicycle.maxCapacity">
+              {{ myBicycle.passengerCount >= myBicycle.maxCapacity ? (isFil ? '🔴 PUNO NA' : '🔴 FULL') : (isFil ? '🟢 MAY BAKANTE' : '🟢 SEATS OPEN') }}
+            </span>
+          </div>
+
+          <div class="counter-display-box">
+            <div class="c-metric">
+              <span class="c-label">{{ isFil ? 'BILANG NG NAKASAKAY' : 'BOARDED PASSENGERS' }}</span>
+              <span class="c-value">{{ myBicycle.passengerCount }} / {{ myBicycle.maxCapacity }}</span>
+            </div>
+            <div class="c-divider"></div>
+            <div class="c-metric">
+              <span class="c-label">{{ isFil ? 'BAKANTENG UPUAN' : 'OPEN SEATS' }}</span>
+              <span class="c-value c-free">{{ myBicycle.maxCapacity - myBicycle.passengerCount }}</span>
+            </div>
+          </div>
+
+          <div class="counter-actions-row">
+            <button 
+              type="button"
+              class="btn-c-touch btn-minus" 
+              [disabled]="myBicycle.passengerCount <= 0"
+              (click)="decrementPassenger()">
+              <ion-icon name="remove-outline"></ion-icon>
+              <span>{{ isFil ? 'Bawasan (-1)' : 'Alight (-1)' }}</span>
+            </button>
+            <button 
+              type="button"
+              class="btn-c-touch btn-plus" 
+              [disabled]="myBicycle.passengerCount >= myBicycle.maxCapacity"
+              (click)="incrementPassenger()">
+              <ion-icon name="add-outline"></ion-icon>
+              <span>{{ isFil ? 'Dagdagan (+1)' : 'Board (+1)' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="btn-complete-trip-banner" (click)="endCurrentTrip()">
+          <ion-icon name="checkmark-done-outline"></ion-icon> {{ isFil ? 'Tapusin ang Pasada' : 'Complete Trip' }}
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ==============================================================
+         B. STANDBY DASHBOARD
+         (Lalabas LAMANG kapag walang active trip o tapos na ang biyahe)
+         ============================================================== -->
+    <div *ngIf="!myActiveBooking && !activeTrip" class="driver-standby-view">
+
+      <!-- Driver Operator Bar & Assigned Shuttle -->
+      <div class="operator-profile-card">
+        <div class="operator-info">
+          <span class="operator-badge">NEUST CAMPUS SHUTTLE OPERATOR</span>
+          <h2 class="operator-name">{{ authService.currentUser.fullName || 'Pedro Penduko' }}</h2>
+          <span class="operator-vehicle-pill">
+            Assigned Shuttle: <strong>{{ myBikeNumber }}</strong> (4-Seat Cap)
+          </span>
+        </div>
+        <div class="operator-avatar-circle">
+          <img [src]="authService.currentUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" alt="Driver Photo" referrerpolicy="no-referrer" (error)="$any($event.target).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" />
+        </div>
+      </div>
+
+      <!-- ONLINE / OFFLINE ULTRA-CLEAR SWITCHER (Matingkad at Madaling Intindihin) -->
+      <div class="driver-online-switch-card" [class.is-offline]="!isDriverOnline">
+        <div class="switch-status-info">
+          <div class="online-indicator-dot" [class.dot-offline]="!isDriverOnline"></div>
+          <div class="switch-text-col">
+            <strong *ngIf="isDriverOnline">{{ isFil ? '🔵 NAKA-ONLINE (Tumatanggap ng Sakay)' : '🔵 ONLINE (Accepting Rides)' }}</strong>
+            <strong *ngIf="!isDriverOnline">{{ isFil ? '⚪ NAKA-PAHINGA (Naka-Offline)' : '⚪ OFFLINE (On Break)' }}</strong>
+            <span>{{ isDriverOnline ? (isFil ? 'Makatatanggap ka ng sakay requests mula sa mga estudyante' : 'You will receive ride requests from passengers') : (isFil ? 'Pindutin ang button para makatanggap ng pasahero' : 'Tap button to go online and accept rides') }}</span>
+          </div>
+        </div>
+        <button type="button" class="btn-toggle-online" [class.btn-go-online]="!isDriverOnline" (click)="toggleDriverOnline()">
+          <ion-icon [name]="isDriverOnline ? 'stop-outline' : 'play-outline'"></ion-icon>
+          <span>{{ isDriverOnline ? (isFil ? 'Mag-Pahinga (Offline)' : 'Go Offline') : (isFil ? 'Mag-Online' : 'Go Online') }}</span>
+        </button>
+      </div>
+
+      <!-- PILAHAN / TERMINAL CHECK-IN CARD (Auto-Detect via GPS + 1-Tap Manual Override) -->
+      <div class="driver-terminal-checkin-card">
+        <div class="dtc-header">
+          <div class="dtc-title-row">
+            <span class="dtc-kicker">{{ isFil ? 'SAAN KA NAKAPILA NGAYON?' : 'WHERE ARE YOU QUEUED?' }}</span>
+            <span class="dtc-badge" [ngClass]="'badge-' + currentTerminal">
+              {{ currentTerminal === 'gate' ? (isFil ? '🏛️ PILAHAN SA GATE' : '🏛️ MAIN GATE STAND') : (currentTerminal === 'arki' ? (isFil ? '📐 GILID NG ARKI' : '📐 ARCHITECTURE STAND') : (isFil ? '🚴 NAGRORONDA' : '🚴 ROAMING')) }}
+            </span>
+          </div>
+          <div class="dtc-subtitle">
+            <span *ngIf="isAutoDetectedByGps" class="gps-detected-pill">
+              <ion-icon name="locate-outline"></ion-icon> {{ isFil ? 'Awtomatikong na-detect ng GPS ng cellphone mo' : 'Auto-detected via phone GPS' }}
+            </span>
+            <span *ngIf="!isAutoDetectedByGps" class="manual-detected-pill">
+              <ion-icon name="pin-outline"></ion-icon> {{ isFil ? 'Piliin ang iyong pila para makita ng mga pasahero sa Live Map' : 'Select your stand to show passengers on the Live Map' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="dtc-buttons-grid">
+          <button 
+            type="button" 
+            class="btn-terminal-choice choice-gate" 
+            [class.is-active]="currentTerminal === 'gate'"
+            (click)="setTerminalAction('gate')">
+            <div class="btc-icon">🏛️</div>
+            <div class="btc-text">
+              <strong>{{ isFil ? 'Pilahan sa Gate' : 'Main Gate Stand' }}</strong>
+              <span>{{ isFil ? 'Main Gate Terminal' : 'Main Gate Stand' }}</span>
+            </div>
+            <ion-icon *ngIf="currentTerminal === 'gate'" name="checkmark-circle" class="btc-check"></ion-icon>
+          </button>
+
+          <button 
+            type="button" 
+            class="btn-terminal-choice choice-arki" 
+            [class.is-active]="currentTerminal === 'arki'"
+            (click)="setTerminalAction('arki')">
+            <div class="btc-icon">📐</div>
+            <div class="btc-text">
+              <strong>{{ isFil ? 'Gilid ng Arki' : 'Architecture Stand' }}</strong>
+              <span>College of Architecture</span>
+            </div>
+            <ion-icon *ngIf="currentTerminal === 'arki'" name="checkmark-circle" class="btc-check"></ion-icon>
+          </button>
+
+          <button 
+            type="button" 
+            class="btn-terminal-choice choice-roaming" 
+            [class.is-active]="currentTerminal === 'roaming'"
+            (click)="setTerminalAction('roaming')">
+            <div class="btc-icon">🚴</div>
+            <div class="btc-text">
+              <strong>{{ isFil ? 'Nagroronda' : 'Roaming' }}</strong>
+              <span>{{ isFil ? 'Umiikot / Walang Pila' : 'Cruising / No Queue' }}</span>
+            </div>
+            <ion-icon *ngIf="currentTerminal === 'roaming'" name="checkmark-circle" class="btc-check"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <!-- LIVE CAPACITY & REAL-TIME PASSENGER DROP-OFF CARD (Laging kita ng Driver at nagrereflect agad sa Student) -->
+      <div class="large-counter-card standby-capacity-card">
+        <div class="counter-card-header">
+          <span class="c-title">{{ isFil ? 'LIVE BILANG NG SAKAY AT UPUAN (' + myBikeNumber + ')' : 'LIVE SEAT & PASSENGER CAPACITY (' + myBikeNumber + ')' }}</span>
+          <span class="c-tag" [class.c-full]="myBicycle.passengerCount >= myBicycle.maxCapacity">
+            {{ myBicycle.passengerCount >= myBicycle.maxCapacity ? (isFil ? '🔴 PUNO NA (0 LIBRE)' : '🔴 FULL (0 SEATS OPEN)') : (isFil ? '🟢 ' + (myBicycle.maxCapacity - myBicycle.passengerCount) + ' BAKANTENG UPUAN' : '🟢 ' + (myBicycle.maxCapacity - myBicycle.passengerCount) + ' SEATS OPEN') }}
+          </span>
+        </div>
+
+        <div class="counter-display-box">
+          <div class="c-metric">
+            <span class="c-label">{{ isFil ? 'NAKASAKAY NGAYON' : 'BOARDED PASSENGERS' }}</span>
+            <span class="c-value">{{ myBicycle.passengerCount }} / {{ myBicycle.maxCapacity }}</span>
+          </div>
+          <div class="c-divider"></div>
+          <div class="c-metric">
+            <span class="c-label">{{ isFil ? 'AVAILABLE NA UPUAN' : 'OPEN SEATS' }}</span>
+            <span class="c-value c-free">{{ myBicycle.maxCapacity - myBicycle.passengerCount }}</span>
+          </div>
+        </div>
+
+        <!-- Boarded Queue Passengers List (Kung may sumakay mula sa Pila) -->
+        <div class="boarded-passengers-mini-list" *ngIf="boardedQueuePassengers.length > 0">
+          <div class="bpm-header">{{ isFil ? 'KASALUKUYANG SAKAY MULA SA PILA:' : 'CURRENT PASSENGERS FROM STAND:' }}</div>
+          <div class="bpm-item" *ngFor="let bp of boardedQueuePassengers">
+            <div class="bpm-info">
+              <strong>{{ bp.studentName }} ({{ bp.queueNumber }})</strong>
+              <span>{{ isFil ? 'Babaan:' : 'Drop-off:' }} {{ bp.destinationName }}</span>
+            </div>
+            <button type="button" class="btn-bpm-dropoff" (click)="dropOffQueuePassengerAction(bp)">
+              <ion-icon name="checkmark-done-outline"></ion-icon>
+              <span>{{ isFil ? 'Naibaba na' : 'Dropped Off' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="counter-actions-row">
+          <button 
+            type="button"
+            class="btn-c-touch btn-minus" 
+            [disabled]="myBicycle.passengerCount <= 0"
+            (click)="decrementPassenger()">
+            <ion-icon name="remove-outline"></ion-icon>
+            <span>{{ isFil ? 'May Bumaba (-1)' : 'Alight (-1)' }}</span>
+          </button>
+          <button 
+            type="button"
+            class="btn-c-touch btn-plus" 
+            [disabled]="myBicycle.passengerCount >= myBicycle.maxCapacity"
+            (click)="incrementPassenger()">
+            <ion-icon name="add-outline"></ion-icon>
+            <span>{{ isFil ? 'May Sumakay (+1)' : 'Board (+1)' }}</span>
+          </button>
+        </div>
+
+        <!-- 1-Tap Drop Off All Passengers -> Reset to 4/4 Available Seats -->
+        <button 
+          *ngIf="myBicycle.passengerCount > 0 || boardedQueuePassengers.length > 0"
+          type="button" 
+          class="btn-dropoff-all-reset" 
+          (click)="dropOffAllPassengersAction()">
+          <ion-icon name="checkmark-done-outline"></ion-icon>
+          <span>{{ isFil ? 'NAIBABA / NAHATID NA LAHAT • BALIK SA 4 AVAILABLE UPUAN' : 'DROP OFF ALL • RESET TO 4 OPEN SEATS' }}</span>
+        </button>
+      </div>
+
+      <!-- DAILY KITA & PERFORMANCE SUMMARY (Arawang Kita) -->
+      <div class="daily-earnings-hero-card" (click)="currentTab = 'history'">
+        <div class="deh-left">
+          <span class="deh-sub">{{ isFil ? 'KITA NGAYONG ARAW (CASH)' : 'TODAY\'S CASH EARNINGS' }}</span>
+          <h1 class="deh-amount">₱{{ totalEarningsToday }}.00</h1>
+          <div class="deh-pills">
+            <span class="deh-pill">🚲 <strong>{{ totalTripsCountToday }}</strong> {{ isFil ? 'Pasada' : 'Trips' }}</span>
+            <span class="deh-pill">👥 <strong>{{ totalPassengersServedToday }}</strong> {{ isFil ? 'Pasahero' : 'Passengers' }}</span>
+          </div>
+        </div>
+        <div class="deh-right">
+          <div class="deh-icon-circle">
+            <ion-icon name="wallet-outline"></ion-icon>
+          </div>
+          <span class="deh-view-link">{{ isFil ? 'Tingnan Rekord' : 'View Records' }} <ion-icon name="chevron-forward-outline"></ion-icon></span>
+        </div>
+      </div>
+
+      <!-- MGA PANGUNAHING KARD / SHORTCUTS PARA SA DRIVER -->
+      <div class="driver-shortcuts-grid">
+        <!-- Pila ng Estudyante -->
+        <div class="d-shortcut-card card-amber" (click)="currentTab = 'queue'">
+          <div class="dsc-icon">
+            <ion-icon name="people-outline"></ion-icon>
+          </div>
+          <div class="dsc-info">
+            <span class="dsc-count">{{ waitingPassengers.length }}</span>
+            <strong class="dsc-label">{{ isFil ? 'Pila ng Estudyante' : 'Passenger Queue' }}</strong>
+            <span class="dsc-sub">{{ isFil ? 'Tawagin ang susunod na sasakay' : 'Call next waiting passenger' }}</span>
+          </div>
+        </div>
+
+        <!-- Campus Live Map -->
+        <div class="d-shortcut-card card-blue" (click)="currentTab = 'trip'">
+          <div class="dsc-icon">
+            <ion-icon name="map-outline"></ion-icon>
+          </div>
+          <div class="dsc-info">
+            <span class="dsc-count">GPS</span>
+            <strong class="dsc-label">{{ isFil ? 'Mapa ng Campus' : 'Campus Map' }}</strong>
+            <span class="dsc-sub">{{ isFil ? 'Tingnan ang live na ruta' : 'View live routes & shuttles' }}</span>
+          </div>
+        </div>
+
+        <!-- Arawang Kita at Rekord -->
+        <div class="d-shortcut-card card-green" (click)="currentTab = 'history'">
+          <div class="dsc-icon">
+            <ion-icon name="cash-outline"></ion-icon>
+          </div>
+          <div class="dsc-info">
+            <span class="dsc-count">₱{{ totalEarningsToday }}</span>
+            <strong class="dsc-label">{{ isFil ? 'Arawang Kita' : 'Daily Earnings' }}</strong>
+            <span class="dsc-sub">{{ totalTripsCountToday }} {{ isFil ? 'Pasada • Rekord' : 'Trips • Summary' }}</span>
+          </div>
+        </div>
+
+        <!-- Iulat ang Sira -->
+        <div class="d-shortcut-card card-red" (click)="isMaintenanceModalOpen = true">
+          <div class="dsc-icon">
+            <ion-icon name="build-outline"></ion-icon>
+          </div>
+          <div class="dsc-info">
+            <span class="dsc-count">{{ myMaintenanceReports.length }}</span>
+            <strong class="dsc-label">{{ isFil ? 'Iulat ang Sira' : 'Report Issue' }}</strong>
+            <span class="dsc-sub">{{ isFil ? 'Flat tire, preno, o kadena' : 'Tire, brakes, or chain' }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ==================== TAB 2: PILA (PASSENGER QUEUE) ==================== -->
+  <div *ngIf="currentTab === 'queue'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>{{ isFil ? 'Pila ng mga Pasahero' : 'Passenger Queue' }}</h2>
+      <p>{{ isFil ? 'Tawagin ang mga nakapilang estudyante o kumpirmahin ang pagsakay.' : 'Call waiting passengers or confirm boarding.' }}</p>
+    </div>
+
+    <!-- Capacity Status Bar & Terminal Pill Selector -->
+    <div class="driver-capacity-banner">
+      <span>{{ isFil ? 'Sasakyan:' : 'Vehicle:' }} <strong>{{ myBikeNumber }}</strong></span>
+      <span>{{ isFil ? 'Bakanteng Upuan:' : 'Open Seats:' }} <strong class="green-seats">{{ myBicycle.maxCapacity - myBicycle.passengerCount }} / {{ myBicycle.maxCapacity }} {{ isFil ? 'Upuan' : 'Seats' }}</strong></span>
+    </div>
+
+    <!-- Quick Terminal Switcher in Pila Tab -->
+    <div class="pila-terminal-strip">
+      <div class="pts-info">
+        <span class="pts-label">{{ isFil ? 'KASALUKUYANG PILA:' : 'CURRENT STAND:' }}</span>
+        <strong class="pts-current">{{ currentTerminal === 'gate' ? (isFil ? 'Pilahan sa Gate' : 'Main Gate Stand') : (currentTerminal === 'arki' ? (isFil ? 'Gilid ng Arki' : 'Architecture Stand') : (isFil ? 'Nagroronda (Walang Pila)' : 'Roaming (No Stand)')) }}</strong>
+      </div>
+      <div class="pts-chips">
+        <button type="button" class="pts-chip" [class.is-active]="currentTerminal === 'gate'" (click)="setTerminalAction('gate')">
+          🏛️ {{ isFil ? 'Gate' : 'Main Gate' }}
+        </button>
+        <button type="button" class="pts-chip" [class.is-active]="currentTerminal === 'arki'" (click)="setTerminalAction('arki')">
+          📐 {{ isFil ? 'Gilid ng Arki' : 'Architecture' }}
+        </button>
+        <button type="button" class="pts-chip" [class.is-active]="currentTerminal === 'roaming'" (click)="setTerminalAction('roaming')">
+          🚴 {{ isFil ? 'Ronda' : 'Roaming' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Boarded Passengers Section (Para pwedeng i-drop off dito mismo sa Pila tab!) -->
+    <div class="boarded-passengers-section" *ngIf="boardedQueuePassengers.length > 0 || myActiveBooking">
+      <div class="bps-head">
+        <span>🟢 {{ isFil ? 'KASALUKUYANG NAKASAKAY SA ' + myBikeNumber : 'CURRENTLY BOARDED ON ' + myBikeNumber }}</span>
+        <button type="button" class="btn-bps-reset-all" (click)="dropOffAllPassengersAction()">
+          {{ isFil ? 'Naibaba Lahat (Balik 4/4)' : 'Drop Off All (Reset 4/4)' }}
+        </button>
+      </div>
+
+      <!-- Active JoyRide Booking Passenger if any -->
+      <div *ngIf="myActiveBooking as ab" class="passenger-queue-item is-boarded-item">
+        <div class="p-item-top">
+          <div class="p-meta-left">
+            <span class="p-q-badge">{{ ab.bookingNumber }}</span>
+            <div>
+              <h4 class="p-name">{{ ab.studentName }} ({{ ab.passengerCount || 1 }} Pax)</h4>
+              <span class="p-id-sub">Student ID: {{ ab.studentIdNumber }} • ₱{{ ab.fareAmount || ((ab.passengerCount || 1) * 10) }}.00</span>
+            </div>
+          </div>
+          <span class="p-status-pill p-called">{{ isFil ? 'NAKASAKAY' : 'BOARDED' }}</span>
+        </div>
+        <div class="p-route-row">
+          <span>{{ isFil ? 'Mula:' : 'From:' }} <strong>{{ ab.pickupName }}</strong></span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ isFil ? 'Babaan:' : 'Destination:' }} <strong>{{ ab.destinationName }}</strong></span>
+        </div>
+        <div class="p-actions-row">
+          <button type="button" class="btn-p-board" (click)="dropOffBookingAction(ab)">
+            <ion-icon name="checkmark-done-outline"></ion-icon>
+            <span>{{ isFil ? 'Naibaba / Nahatid na sa ' + ab.destinationName + ' (Balik 4/4 Upuan)' : 'Dropped off at ' + ab.destinationName + ' (Reset 4/4 Seats)' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Boarded Queue Passengers -->
+      <div *ngFor="let bq of boardedQueuePassengers" class="passenger-queue-item is-boarded-item">
+        <div class="p-item-top">
+          <div class="p-meta-left">
+            <span class="p-q-badge">{{ bq.queueNumber }}</span>
+            <div>
+              <h4 class="p-name">{{ bq.studentName }}</h4>
+              <span class="p-id-sub">Student ID: {{ bq.studentIdNumber }}</span>
+            </div>
+          </div>
+          <span class="p-status-pill p-called">{{ isFil ? 'NAKASAKAY' : 'BOARDED' }}</span>
+        </div>
+        <div class="p-route-row">
+          <span>{{ isFil ? 'Mula:' : 'From:' }} <strong>{{ bq.pickupLocationName }}</strong></span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ isFil ? 'Babaan:' : 'Destination:' }} <strong>{{ bq.destinationName }}</strong></span>
+        </div>
+        <div class="p-actions-row">
+          <button type="button" class="btn-p-board" (click)="dropOffQueuePassengerAction(bq)">
+            <ion-icon name="checkmark-done-outline"></ion-icon>
+            <span>{{ isFil ? 'Naibaba / Nahatid na sa ' + bq.destinationName + ' (+1 Free Seat)' : 'Dropped off at ' + bq.destinationName + ' (+1 Open Seat)' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="passengers-queue-list">
+      <div *ngIf="!waitingPassengers.length" class="empty-state-card">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <h4>{{ isFil ? 'Walang Nakapila sa Kasalukuyan' : 'No Queued Passengers Currently' }}</h4>
+        <p>{{ isFil ? 'Lahat ng estudyante sa terminal ay nakasakay na o walang bagong pila.' : 'All passengers at the stand have boarded or queue is empty.' }}</p>
+      </div>
+
+      <div *ngFor="let q of waitingPassengers" class="passenger-queue-item" [class.is-called-item]="q.status === 'called'">
+        <div class="p-item-top">
+          <div class="p-meta-left">
+            <span class="p-q-badge">{{ q.queueNumber }}</span>
+            <div>
+              <h4 class="p-name">{{ q.studentName }}</h4>
+              <span class="p-id-sub">Student ID: {{ q.studentIdNumber }}</span>
+            </div>
+          </div>
+          <span class="p-status-pill" [class.p-called]="q.status === 'called'">
+            {{ q.status === 'called' ? (isFil ? 'TINAWAG NA' : 'CALLED') : (isFil ? 'NAGHIHINTAY' : 'WAITING') }}
+          </span>
+        </div>
+
+        <div class="p-route-row">
+          <span>{{ isFil ? 'Sakayan:' : 'Pickup:' }} <strong>{{ q.pickupLocationName }}</strong></span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ isFil ? 'Babaan:' : 'Destination:' }} <strong>{{ q.destinationName }}</strong></span>
+        </div>
+
+        <!-- Custom Pickup Pin & Driver Distance -->
+        <div class="p-custom-pin-box" *ngIf="q.customPickupPin">
+          <div class="pin-top-row">
+            <span class="tag-pin">📍 CUSTOM PIN</span>
+            <span class="tag-distance">{{ getDistanceToPickup(q) }}m {{ isFil ? 'ang layo sa iyo' : 'away from you' }}</span>
+          </div>
+          <div class="pin-full-address">{{ q.customPickupPin.addressText }}</div>
+          <div class="pin-student-note" *ngIf="q.pickupInstructions">
+            <em>{{ isFil ? 'Bilin:' : 'Note:' }} "{{ q.pickupInstructions }}"</em>
+          </div>
+        </div>
+
+        <div class="p-actions-row">
+          <button 
+            *ngIf="q.status === 'waiting'" 
+            type="button"
+            class="btn-p-call" 
+            (click)="callPassengerAction(q)">
+            <ion-icon name="call-outline"></ion-icon> 
+            <span>{{ isFil ? 'Tawagin si Pasahero' : 'Call Passenger' }}</span>
+          </button>
+          <button 
+            *ngIf="q.status === 'called'" 
+            type="button"
+            class="btn-p-board" 
+            [disabled]="myBicycle.passengerCount >= myBicycle.maxCapacity"
+            (click)="boardPassengerAction(q)">
+            <ion-icon name="checkmark-circle-outline"></ion-icon> 
+            <span>{{ isFil ? 'Sumakay na (+1)' : 'Board Now (+1)' }}</span>
+          </button>
+          <button 
+            type="button"
+            class="btn-p-skip" 
+            (click)="skipPassengerAction(q)">
+            <span>Skip</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 3: MAPA (CAMPUS MAP & NAVIGATION) ==================== -->
+  <div *ngIf="currentTab === 'trip'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>{{ isFil ? 'Live Mapa at GPS Navigasyon' : 'Live Campus Map & GPS Navigation' }}</h2>
+      <p>{{ isFil ? 'Real-time na lokasyon ng iyong bike at patutunguhan sa campus.' : 'Real-time bike location and navigation across campus.' }}</p>
+    </div>
+
+    <!-- Active Booking Action Strip (If active booking exists) -->
+    <div *ngIf="myActiveBooking as booking" class="map-active-booking-strip">
+      <div class="mabs-left">
+        <span class="mabs-label">{{ isFil ? 'KASALUKUYANG BIYAHE:' : 'CURRENT TRIP:' }}</span>
+        <strong>{{ booking.studentName }} ({{ booking.pickupName }} → {{ booking.destinationName }})</strong>
+      </div>
+      <button type="button" class="btn-mabs-action" (click)="currentTab = 'dashboard'">
+        {{ isFil ? 'Buksan ang Controls' : 'Open Controls' }}
+      </button>
+    </div>
+
+    <!-- Full Map Component Container -->
+    <div class="driver-full-map-wrap">
+      <app-campus-map
+        [defaultMode]="'leaflet'"
+        [compactHeight]="false"
+        [showHeaderControls]="true"
+        [bicycles]="(stateService.bicycles$ | async) || []"
+        [locations]="(stateService.locations$ | async) || []"
+        [activeBooking]="myActiveBooking || null">
+      </app-campus-map>
+    </div>
+
+    <!-- GPS Hardware Status Bar -->
+    <div class="driver-gps-bar">
+      <div class="dgb-left">
+        <ion-icon name="locate-outline" class="dgb-icon" [class.is-live]="isGpsActive"></ion-icon>
+        <div>
+          <strong>{{ isGpsActive ? (isFil ? '🟢 Live GPS: Aktibo at Nagsasahimpapawid' : '🟢 Live GPS: Active & Broadcasting') : (isFil ? '⚪ GPS Offline' : '⚪ GPS Offline') }}</strong>
+          <span>Coordinates: {{ liveLat }}° N, {{ liveLng }}° E (±{{ gpsAccuracyMeters }}m)</span>
+        </div>
+      </div>
+      <button type="button" class="btn-dgb-toggle" (click)="toggleGpsTracking()">
+        {{ isGpsActive ? (isFil ? 'I-off' : 'Turn Off') : (isFil ? 'I-on' : 'Turn On') }}
+      </button>
+    </div>
+
+    <!-- Zone Alert Banner if detected -->
+    <div class="zone-detection-banner" *ngIf="currentZone" [class.is-restricted-zone]="currentZone.type === 'restricted'">
+      <ion-icon [name]="currentZone.type === 'restricted' ? 'alert-circle-outline' : 'shield-checkmark-outline'"></ion-icon>
+      <div>
+        <strong>{{ currentZone.name }}</strong>
+        <span>{{ currentZone.type === 'restricted' ? (isFil ? '⚠️ Babala: Prohibited / Restricted Zone!' : '⚠️ Warning: Restricted Zone!') : (isFil ? 'Nasa Opisyal na Campus Designated Zone ka' : 'Inside Designated Campus Zone') }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 4: KITA & REKORD (EARNINGS & HISTORY) ==================== -->
+  <div *ngIf="currentTab === 'history'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>{{ isFil ? 'Kita at Rekord ng Pasada' : 'Earnings & Trip Records' }}</h2>
+      <p>{{ isFil ? 'Buod ng lahat ng natapos na biyahe at nakolektang pamasahe ngayong araw.' : 'Summary of all completed trips and fares collected today.' }}</p>
+    </div>
+
+    <!-- Big Income Stats Banner -->
+    <div class="earnings-breakdown-card">
+      <div class="ebc-top">
+        <div class="ebc-icon">
+          <ion-icon name="cash-outline"></ion-icon>
+        </div>
+        <div>
+          <span class="ebc-label">{{ isFil ? 'Kabuuang Kita Ngayong Araw' : 'Total Earnings Today' }}</span>
+          <h1 class="ebc-total">₱{{ totalEarningsToday }}.00</h1>
+        </div>
+      </div>
+
+      <div class="ebc-stats-grid">
+        <div class="ebc-stat-box">
+          <span class="ebc-stat-val">{{ totalTripsCountToday }}</span>
+          <span class="ebc-stat-lbl">{{ isFil ? 'Natapos na Biyahe' : 'Trips Completed' }}</span>
+        </div>
+        <div class="ebc-stat-box">
+          <span class="ebc-stat-val">{{ totalPassengersServedToday }}</span>
+          <span class="ebc-stat-lbl">{{ isFil ? 'Pasaherong Naihatid' : 'Passengers Served' }}</span>
+        </div>
+        <div class="ebc-stat-box">
+          <span class="ebc-stat-val">100%</span>
+          <span class="ebc-stat-lbl">{{ isFil ? 'Cash Payment' : 'Cash Payment' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- List of completed trips and bookings -->
+    <h3 class="section-title" style="margin-top: 20px; margin-bottom: 12px;">{{ isFil ? 'Mga Natapos na Pasada Ngayon' : 'Completed Trips Today' }}</h3>
+
+    <div class="driver-history-list" *ngIf="completedBookingsToday.length || completedTripsToday.length; else noHistory">
+      <!-- Completed JoyRide Bookings -->
+      <div *ngFor="let b of completedBookingsToday" class="driver-receipt-card is-joyride">
+        <div class="dr-top">
+          <div class="dr-title-col">
+            <span class="dr-tag-joyride">JOYRIDE PASADA</span>
+            <strong>{{ b.studentName }}</strong>
+          </div>
+          <strong class="dr-fare-badge">₱{{ b.fareAmount || ((b.passengerCount || 1) * 10) }}.00</strong>
+        </div>
+        <div class="dr-route">
+          <span>{{ b.pickupName }}</span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ b.destinationName }}</span>
+        </div>
+        <div class="dr-bottom">
+          <span>{{ b.passengerCount || 1 }} {{ isFil ? 'Pasahero' : 'Passenger(s)' }} • {{ b.updatedAt | date:'shortTime' }}</span>
+          <span class="dr-badge-completed">{{ isFil ? '✅ KUMPLETO' : '✅ COMPLETED' }}</span>
+        </div>
+      </div>
+
+      <!-- Completed Shuttle Loops -->
+      <div *ngFor="let trip of completedTripsToday" class="driver-receipt-card">
+        <div class="dr-top">
+          <div class="dr-title-col">
+            <span class="dr-tag-shuttle">REGULAR SHUTTLE</span>
+            <strong>{{ trip.tripNumber }}</strong>
+          </div>
+          <strong class="dr-fare-badge">₱{{ (trip.passengerCount || 1) * 10 }}.00</strong>
+        </div>
+        <div class="dr-route">
+          <span>{{ trip.pickupLocation }}</span>
+          <ion-icon name="arrow-forward-outline"></ion-icon>
+          <span>{{ trip.destination }}</span>
+        </div>
+        <div class="dr-bottom">
+          <span>{{ trip.passengerCount }} {{ isFil ? 'Pasahero' : 'Passenger(s)' }} • {{ trip.startTime | date:'shortTime' }}</span>
+          <span class="dr-badge-completed">{{ isFil ? '✅ KUMPLETO' : '✅ COMPLETED' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noHistory>
+      <div class="empty-state-card">
+        <ion-icon name="bicycle-outline"></ion-icon>
+        <h4>{{ isFil ? 'Wala pang natapos na pasada ngayong araw' : 'No trips completed yet today' }}</h4>
+        <p>{{ isFil ? 'Kapag natapos mo ang unang biyahe, lalabas dito ang iyong resibo at pamasahe.' : 'Once you complete your first trip, your receipt and fare summary will appear here.' }}</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- ==================== TAB 5: IBA PA / PROFILE & ACTIONS ==================== -->
+  <div *ngIf="currentTab === 'profile'" class="tab-page ion-padding">
+    <div class="profile-card">
+      <div class="profile-header-strip"></div>
+
+      <div class="profile-avatar-wrap">
+        <img [src]="authService.currentUser.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" alt="Driver Photo" referrerpolicy="no-referrer" (error)="$any($event.target).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80'" />
+        <span class="verified-check">✓</span>
+      </div>
+
+      <h2 class="profile-fullname">{{ authService.currentUser.fullName || 'Pedro Penduko' }}</h2>
+      <span class="profile-role-tag">{{ isFil ? 'OPISYAL NA NEUST TRICYCLE / SHUTTLE OPERATOR' : 'OFFICIAL NEUST SHUTTLE OPERATOR' }}</span>
+
+      <div class="profile-details-table">
+        <div class="detail-row">
+          <span class="detail-label">{{ isFil ? 'Lisensya / Driver ID' : 'Driver / Operator ID' }}</span>
+          <strong>{{ authService.currentUser.idNumber || 'DRV-2024-001' }}</strong>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">{{ isFil ? 'Assigned na Sasakyan' : 'Assigned Shuttle' }}</span>
+          <strong>{{ myBikeNumber }} ({{ isFil ? '4 na Upuan' : '4-Seat Capacity' }})</strong>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">{{ isFil ? 'Numero ng Telepono' : 'Phone Number' }}</span>
+          <strong>{{ authService.currentUser.phone || '0918-765-4321' }}</strong>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">{{ isFil ? 'Himpilan / Dibisyon' : 'Station / Division' }}</span>
+          <strong>NEUST Fleet & Campus Safety Transport</strong>
+        </div>
+      </div>
+
+      <!-- Quick Action Cards inside Profile -->
+      <div class="profile-menu-actions">
+        <!-- Iulat ang Sira ng Sasakyan -->
+        <button type="button" class="btn-profile-menu-item" (click)="isMaintenanceModalOpen = true">
+          <div class="bpmi-icon bg-amber">
+            <ion-icon name="build-outline"></ion-icon>
+          </div>
+          <div class="bpmi-text">
+            <strong>{{ isFil ? 'Iulat ang Sira ng Sasakyan' : 'Report Vehicle Issue' }}</strong>
+            <span>{{ isFil ? 'Mag-report ng flat tire, preno, o kadenang may problema' : 'Report mechanical concerns, tires, or brakes' }}</span>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="bpmi-arrow"></ion-icon>
+        </button>
+
+        <!-- Mag-Sign Out -->
+        <button type="button" class="btn-profile-menu-item btn-menu-logout" (click)="authService.logout()">
+          <div class="bpmi-icon bg-red">
+            <ion-icon name="log-out-outline"></ion-icon>
+          </div>
+          <div class="bpmi-text">
+            <strong>{{ isFil ? 'Mag-Sign Out / Lumipat ng Driver' : 'Sign Out / Switch Operator' }}</strong>
+            <span>{{ isFil ? 'I-close ang session sa teleponong ito' : 'Close your session on this device' }}</span>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="bpmi-arrow"></ion-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 6: MAINTENANCE SUBMISSIONS (When opened) ==================== -->
+  <div *ngIf="currentTab === 'maintenance'" class="tab-page ion-padding">
+    <div class="page-title-group">
+      <h2>{{ isFil ? 'Iulat ang Sira ng Sasakyan' : 'Report Vehicle Maintenance' }}</h2>
+      <p>{{ isFil ? 'Isumite ang mga problemang mekanikal sa campus mechanics.' : 'Submit mechanical or safety issues to campus fleet team.' }}</p>
+    </div>
+
+    <button type="button" class="btn-start-trip-hero" (click)="isMaintenanceModalOpen = true">
+      <ion-icon name="build-outline"></ion-icon>
+      <span>MAG-ULAT NG BAGONG SIRA</span>
+    </button>
+
+    <h3 class="section-title" style="margin-top: 24px; margin-bottom: 10px;">Mga Naisumite Mong Report</h3>
+    <div class="maint-cards-list">
+      <div *ngFor="let rep of myMaintenanceReports" class="maint-ticket-card">
+        <div class="mt-top">
+          <span class="mt-num">{{ rep.reportNumber }}</span>
+          <span class="mt-badge" [ngClass]="'mt-' + rep.status">
+            {{ rep.status | uppercase }}
+          </span>
+        </div>
+        <h4 class="mt-issue">{{ rep.issueType }}</h4>
+        <p class="mt-desc">{{ rep.description }}</p>
+        <div class="mt-footer">
+          <span>Petsa: {{ rep.reportedAt | date:'medium' }}</span>
+          <span *ngIf="rep.adminNotes" class="mt-admin-note">Admin: {{ rep.adminNotes }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DRIVER MESSENGER / CHAT MODAL ==================== -->
+  <ion-modal [isOpen]="isDriverChatOpen" (didDismiss)="closeDriverChat()" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1]">
+    <ng-template>
+      <div class="driver-chat-modal-wrap" *ngIf="myActiveBooking as booking">
+        <!-- Chat Header -->
+        <div class="dcm-header">
+          <div class="dcm-user-info">
+            <div class="dcm-avatar">
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
+            <div>
+              <h4>{{ booking.studentName }}</h4>
+              <span class="dcm-sub">{{ booking.pickupName }} → {{ booking.destinationName }}</span>
+            </div>
+          </div>
+          <div class="dcm-actions">
+            <a [href]="'tel:' + (booking.studentPhone || '0927-123-4567')" class="btn-dcm-call">
+              <ion-icon name="call-outline"></ion-icon> Tawag
+            </a>
+            <button type="button" class="btn-dcm-close" (click)="closeDriverChat()">
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Messages Stream -->
+        <div class="dcm-messages-stream">
+          <div class="dcm-security-notice">
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+            <span>{{ isFil ? 'Ligtas at diretsong komunikasyon sa pagitan mo at ng estudyante.' : 'Secure, direct communication between driver and passenger.' }}</span>
+          </div>
+
+          <div *ngFor="let msg of activeBookingMessages" class="dcm-msg-row" [class.is-driver]="msg.senderRole === 'driver'" [class.is-student]="msg.senderRole === 'student'">
+            <div class="dcm-msg-bubble">
+              <span class="dcm-sender-name">{{ msg.senderRole === 'driver' ? (isFil ? 'Ikaw (Driver)' : 'You (Driver)') : msg.senderName }}</span>
+              <p>{{ msg.message }}</p>
+              <span class="dcm-msg-time">{{ msg.timestamp }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="activeBookingMessages.length === 0" class="dcm-empty-hint">
+            <p>{{ isFil ? 'Wala pang mensahe. Piliin ang isa sa mga mabilisang tugon sa ibaba.' : 'No messages yet. Select a quick reply below or type a message.' }}</p>
+          </div>
+        </div>
+
+        <!-- 1-Tap Quick Reply Chips (Para sa mabilis na pag-chat habang nasa tricycle) -->
+        <div class="dcm-quick-chips-row">
+          <button 
+            type="button" 
+            *ngFor="let reply of driverQuickReplies" 
+            class="dcm-chip" 
+            (click)="sendQuickDriverReply(reply)">
+            {{ reply }}
+          </button>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="dcm-input-bar">
+          <input 
+            type="text" 
+            [(ngModel)]="driverChatInput" 
+            (keyup.enter)="sendDriverMessage()" 
+            [placeholder]="isFil ? 'Sumulat ng mensahe...' : 'Type a message...'" 
+            class="dcm-text-input" />
+          <button 
+            type="button" 
+            class="btn-dcm-send" 
+            [disabled]="!driverChatInput.trim()" 
+            (click)="sendDriverMessage()">
+            <ion-icon name="send"></ion-icon>
+          </button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- ==================== 5-ITEM DRIVER BOTTOM NAVIGATION BAR ==================== -->
+  <div class="bottom-nav-bar">
+    <!-- 1. Biyahe (Dashboard) -->
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'dashboard'" (click)="currentTab = 'dashboard'">
+      <ion-icon name="bicycle-outline"></ion-icon>
+      <span>{{ isFil ? 'Biyahe' : 'Trips' }}</span>
+    </button>
+
+    <!-- 2. Pila (Queue) -->
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'queue'" (click)="currentTab = 'queue'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="people-outline"></ion-icon>
+        <span class="badge-dot-indicator" *ngIf="waitingPassengers.length">{{ waitingPassengers.length }}</span>
+      </div>
+      <span>{{ isFil ? 'Pila' : 'Queue' }}</span>
+    </button>
+
+    <!-- 3. Mapa (Campus Map) -->
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'trip'" (click)="currentTab = 'trip'">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <span>{{ isFil ? 'Mapa' : 'Map' }}</span>
+    </button>
+
+    <!-- 4. Kita (Earnings / History) -->
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'history'" (click)="currentTab = 'history'">
+      <ion-icon name="cash-outline"></ion-icon>
+      <span>{{ isFil ? 'Kita' : 'Earnings' }}</span>
+    </button>
+
+    <!-- 5. Iba Pa (Profile & Options) -->
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'profile' || currentTab === 'maintenance'" (click)="currentTab = 'profile'">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>{{ isFil ? 'Iba Pa' : 'More' }}</span>
+    </button>
+  </div>
+
+  <!-- START REGULAR SHUTTLE TRIP MODAL -->
+  <ion-modal [isOpen]="isStartTripModalOpen" (didDismiss)="isStartTripModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+    <ng-template>
+      <div class="qr-modal-container">
+        <div class="qr-modal-header">
+          <h3>{{ isFil ? 'Magsimula ng Shuttle Pasada' : 'Start Shuttle Trip' }}</h3>
+          <button type="button" class="modal-x-btn" (click)="isStartTripModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 14px;">
+          <label>{{ isFil ? 'Sakayan (Boarding Station)' : 'Boarding Station (Pickup)' }}</label>
+          <ion-select [(ngModel)]="tripPickupId" interface="action-sheet" class="form-select">
+            <ion-select-option *ngFor="let loc of (stateService.locations$ | async)" [value]="loc.id">
+              {{ loc.buildingNumber }} - {{ loc.name }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="form-field" style="text-align: left;">
+          <label>{{ isFil ? 'Patutunguhan (Destination)' : 'Destination' }}</label>
+          <ion-select [(ngModel)]="tripDestId" interface="action-sheet" class="form-select">
+            <ion-select-option *ngFor="let loc of (stateService.locations$ | async)" [value]="loc.id">
+              {{ loc.buildingNumber }} - {{ loc.name }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+
+        <button type="button" class="btn-start-trip-hero" style="margin-top: 24px;" (click)="confirmStartTrip()">
+          <ion-icon name="play-outline"></ion-icon> {{ isFil ? 'Kumpirmahin at Simulan' : 'Confirm & Start' }}
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- SUBMIT MAINTENANCE REPORT MODAL -->
+  <ion-modal [isOpen]="isMaintenanceModalOpen" (didDismiss)="isMaintenanceModalOpen = false" [initialBreakpoint]="0.8" [breakpoints]="[0, 0.8]">
+    <ng-template>
+      <div class="qr-modal-container">
+        <div class="qr-modal-header">
+          <h3>Iulat ang Sira ng Sasakyan</h3>
+          <button type="button" class="modal-x-btn" (click)="isMaintenanceModalOpen = false">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Numero ng Tricycle / Bike</label>
+          <input type="text" [value]="myBikeNumber" disabled class="form-text-input" />
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Uri ng Problema</label>
+          <ion-select [(ngModel)]="issueType" interface="popover" class="form-select">
+            <ion-select-option value="Flat Tire">Flat Tire / Butas na Gulong</ion-select-option>
+            <ion-select-option value="Brake Problem">Problema sa Preno (Malambot/Pudpud)</ion-select-option>
+            <ion-select-option value="Chain / Gears">Kadena / Pedal / Gear</ion-select-option>
+            <ion-select-option value="Battery / Lighting">Baterya / Ilaw / Wiring</ion-select-option>
+            <ion-select-option value="Frame / Seat">Frame / Upuan / Alignment</ion-select-option>
+            <ion-select-option value="Other">Iba Pang Sira</ion-select-option>
+          </ion-select>
+        </div>
+
+        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+          <label>Maikling Paliwanag sa Sira</label>
+          <textarea 
+            [(ngModel)]="issueDescription" 
+            rows="3" 
+            placeholder="Halimbawa: Nabutasan ng gulong sa tapat ng CICT, kailangang bulkanisahin..." 
+            class="form-text-input" 
+            style="resize: none;">
+          </textarea>
+        </div>
+
+        <button type="button" class="btn-start-trip-hero" style="margin-top: 16px;" (click)="submitMaintenanceAction()">
+          <ion-icon name="checkmark-circle-outline"></ion-icon> Isumite ang Work Order
+        </button>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <ion-toast [isOpen]="showToast" [message]="toastMessage" [duration]="2500" (didDismiss)="showToast = false"></ion-toast>
+
+</div>

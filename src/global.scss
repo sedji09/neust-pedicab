@@ -1,37 +1,450 @@
 /*
- * App Global CSS
- * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
+ * NEUST BikeGo Global Stylesheet
+ * Modern Ride-Hailing & Micro-Mobility UI Design System
  */
 
-/* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
-
-/* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
+* {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Mobile Frame Wrapper */
+.mobile-wrapper {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-shadow: 0 20px 40px -10px rgba(29, 54, 152, 0.15);
+  background-color: #f8fafc;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 520px) {
+    max-width: 100%;
+    box-shadow: none;
+  }
+}
+
+/* Reusable Status Badges */
+.badge-available {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  font-weight: 700;
+}
+
+.badge-almost-full {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+
+.badge-full {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  font-weight: 700;
+}
+
+.badge-on-trip {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-weight: 700;
+}
+
+.badge-maintenance {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  font-weight: 700;
+}
+
+/* Pulse animation for active shuttles */
+@keyframes pulseMarkerRing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.pulse-marker {
+  animation: pulseMarkerRing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth Touch Targets */
+button, .clickable-pill, .interactive-card {
+  transition: transform 0.12s ease, opacity 0.12s ease, background 0.15s ease;
+  user-select: none;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+/* ==================== GLOBAL FIXED MOBILE BOTTOM NAVIGATION BAR ==================== */
+.bottom-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  min-height: calc(64px + env(safe-area-inset-bottom, 0px));
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 99999;
+  box-shadow: 0 -4px 20px rgba(16, 42, 86, 0.08);
+  padding: 2px 6px calc(env(safe-area-inset-bottom, 0px) + 2px);
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+
+  @media (max-width: 520px) {
+    max-width: 100%;
+  }
+
+  @media (max-width: 360px) {
+    padding: 2px 2px calc(env(safe-area-inset-bottom, 0px) + 2px);
+    min-height: calc(60px + env(safe-area-inset-bottom, 0px));
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bottom-nav-btn {
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    padding: 6px 4px;
+    border-radius: 12px;
+    flex: 1;
+    min-width: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+
+    @media (max-width: 360px) {
+      padding: 4px 2px;
+    }
+
+    .nav-icon-badge-box {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      ion-icon {
+        font-size: 22px;
+        transition: transform 0.2s ease, color 0.2s ease;
+
+        @media (max-width: 360px) {
+          font-size: 20px;
+        }
+      }
+
+      .badge-dot-indicator {
+        position: absolute;
+        top: -1px;
+        right: -3px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #dc2626;
+        border: 1.5px solid #ffffff;
+      }
+    }
+
+    span {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1px;
+      margin-top: 3px;
+      color: #64748b;
+      transition: color 0.2s ease, font-weight 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+
+      @media (max-width: 360px) {
+        font-size: 9.2px;
+        letter-spacing: 0;
+        margin-top: 2px;
+      }
+    }
+
+    &:hover {
+      background: rgba(239, 246, 255, 0.6);
+      color: #2563eb;
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+
+    &.is-active {
+      color: #2563eb;
+
+      .nav-icon-badge-box ion-icon {
+        color: #2563eb;
+        transform: scale(1.1);
+      }
+
+      span {
+        color: #2563eb;
+        font-weight: 800;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 2px;
+        width: 16px;
+        height: 3px;
+        border-radius: 9999px;
+        background: #2563eb;
+      }
+    }
+
+    /* Elevated Center Action Button (e.g. Queue / Ticket) */
+    &.nav-btn-center {
+      position: relative;
+      overflow: visible;
+
+      .nav-center-bubble {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1d3698 0%, #2563eb 100%);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -22px;
+        box-shadow: 0 6px 16px rgba(29, 54, 152, 0.4);
+        border: 3.5px solid #ffffff;
+        position: relative;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+        @media (max-width: 360px) {
+          width: 44px;
+          height: 44px;
+          margin-top: -18px;
+          border-width: 3px;
+        }
+
+        ion-icon {
+          font-size: 22px;
+          color: #ffffff;
+
+          @media (max-width: 360px) {
+            font-size: 20px;
+          }
+        }
+
+        &.has-active-ticket {
+          background: linear-gradient(135deg, #f89318 0%, #da8115 100%);
+          box-shadow: 0 6px 16px rgba(248, 147, 24, 0.4);
+        }
+
+        .bubble-badge {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          background: #dc2626;
+          color: #ffffff;
+          font-size: 9px;
+          font-weight: 800;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid #ffffff;
+        }
+      }
+
+      .center-btn-label {
+        font-size: 10px;
+        margin-top: 2px;
+
+        @media (max-width: 360px) {
+          font-size: 9.2px;
+        }
+      }
+
+      &.is-active .nav-center-bubble {
+        transform: scale(1.08);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.55);
+      }
+
+      &.is-active::after {
+        display: none;
+      }
+    }
+  }
+}
+
+/* Grab/JoyRide Custom 3D Pedicab Rider Global Styles */
+.leaflet-pedicab-icon-host {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-custom-pedicab-container {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .pedicab-halo {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    animation: pulsePedicabGlobal 1.8s infinite ease-out;
+
+    &.halo-green {
+      background: rgba(16, 185, 129, 0.28);
+      border: 2px solid rgba(16, 185, 129, 0.6);
+    }
+    &.halo-blue {
+      background: rgba(37, 99, 235, 0.28);
+      border: 2px solid rgba(37, 99, 235, 0.6);
+    }
+  }
+
+  .pedicab-vehicle-body {
+    position: relative;
+    z-index: 2;
+    transition: transform 0.4s ease-out;
+
+    .pedicab-3d-img {
+      width: 62px;
+      height: 44px;
+      object-fit: contain;
+      display: block;
+      filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+  }
+
+  .pedicab-rider-badge {
+    position: absolute;
+    bottom: -6px;
+    z-index: 3;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
+
+    .p-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      &.dot-green { background: #10b981; }
+      &.dot-blue { background: #3b82f6; }
+    }
+  }
+}
+
+@keyframes pulsePedicabGlobal {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  50% { transform: scale(1.25); opacity: 0.35; }
+  100% { transform: scale(0.85); opacity: 0.9; }
+}
+
+/* Modern Universal Toast Styling (Overrides default grey square look) */
+ion-toast {
+  --background: rgba(15, 23, 42, 0.96);
+  --color: #ffffff;
+  --border-radius: 16px;
+  --box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.15);
+  --button-color: #38bdf8;
+  --max-width: 440px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  margin-top: env(safe-area-inset-top, 8px);
+
+  &::part(message) {
+    text-align: center;
+    padding: 10px 16px;
+    line-height: 1.4;
+  }
+}
+

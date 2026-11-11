@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NEUST BikeGo</string>
+    <string name="title_activity_main">NEUST BikeGo</string>
+    <string name="package_name">ph.edu.neust.bikego.app</string>
+    <string name="custom_url_scheme">ph.edu.neust.bikego.app</string>
+    <string name="server_client_id">232021188558-g0q53j07r2miuv5qc8pb2epi499qh251.apps.googleusercontent.com</string>
+</resources>

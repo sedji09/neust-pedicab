@@ -1,21 +1,62 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title> Blank </ion-title>
-  </ion-toolbar>
-</ion-header>
+<div class="mobile-wrapper" [class.is-admin-mode]="authService.role === 'admin'">
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>
-      Start with Ionic
-      <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a>
-    </p>
+  <!-- GLOBAL FLOATING IN-APP TOAST (White background with blue left accent border, visible across Profile, Notifications, Dashboards) -->
+  <div
+    class="in-app-toast-wrapper"
+    *ngIf="notificationService.inAppToast$ | async as toast"
+    (click)="onToastClick(toast)">
+    <div class="in-app-toast-card">
+      <div class="toast-icon-circle">
+        <ion-icon [name]="getToastIcon(toast.type)"></ion-icon>
+      </div>
+      <div class="toast-content-col">
+        <div class="toast-top-meta">
+          <strong class="toast-title">{{ toast.title }}</strong>
+          <span class="toast-now-tag">Just now</span>
+        </div>
+        <p class="toast-message-body">{{ toast.message }}</p>
+      </div>
+      <button
+        type="button"
+        class="btn-toast-dismiss"
+        (click)="notificationService.dismissToast(); $event.stopPropagation()"
+        title="Dismiss">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+      <div class="toast-progress-countdown"></div>
+    </div>
   </div>
-</ion-content>
+
+  <!-- 0. DEDICATED LANDING PAGE FOR LOGGED OUT / WELCOME STATE -->
+  <app-landing-page *ngIf="!authService.isAuthenticated && !authService.isGuestBrowsing"></app-landing-page>
+
+  <ng-container *ngIf="authService.isAuthenticated || authService.isGuestBrowsing">
+    <!-- 1. DEDICATED FULL-PAGE NOTIFICATIONS SCREEN (When Open, hides all other UI) -->
+    <app-notifications-page
+      *ngIf="stateService.isNotificationsPageOpen$ | async"
+      (close)="stateService.closeNotificationsPage()">
+    </app-notifications-page>
+
+    <!-- 2. DEDICATED FULL-PAGE PROFILE & SETTINGS SCREEN (Opens from top round avatar, hides all other UI) -->
+    <app-profile-page
+      *ngIf="stateService.isProfilePageOpen$ | async"
+      (close)="stateService.closeProfilePage()">
+    </app-profile-page>
+
+    <!-- 3. MAIN APPLICATION INTERFACE (Shown when neither notifications nor profile page is open) -->
+    <ng-container *ngIf="!(stateService.isNotificationsPageOpen$ | async) && !(stateService.isProfilePageOpen$ | async)">
+      <!-- Unified Top App Header (Hidden when student is in dedicated solo booking flow or live driver messenger) -->
+      <app-header *ngIf="!(stateService.isMessengerOpen$ | async) && (authService.role !== 'student' || (stateService.activeTab$ | async) !== 'queue')"></app-header>
+
+      <ion-content class="app-main-content">
+        <!-- ROLE BASED ROUTING & VIEW SELECTION -->
+        <app-student-dashboard *ngIf="authService.role === 'student'"></app-student-dashboard>
+        <app-driver-dashboard *ngIf="authService.role === 'driver'"></app-driver-dashboard>
+        <app-admin-dashboard *ngIf="authService.role === 'admin'"></app-admin-dashboard>
+      </ion-content>
+    </ng-container>
+  </ng-container>
+
+  <!-- Create Account / Sign In Modal -->
+  <app-auth-modal></app-auth-modal>
+</div>

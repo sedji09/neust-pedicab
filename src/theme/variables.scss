@@ -1,2 +1,79 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+// NEUST BikeGo Custom Theme Variables
+// Precision palette from NEUST BikeGo UI/UX Specifications
+
+:root {
+  --ion-color-primary: #1d3698;
+  --ion-color-primary-rgb: 29, 54, 152;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #192f85;
+  --ion-color-primary-tint: #344aa2;
+
+  --ion-color-secondary: #2563eb;
+  --ion-color-secondary-rgb: 37, 99, 235;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #2157cf;
+  --ion-color-secondary-tint: #3b73ed;
+
+  --ion-color-tertiary: #f89318;
+  --ion-color-tertiary-rgb: 248, 147, 24;
+  --ion-color-tertiary-contrast: #0f172a;
+  --ion-color-tertiary-contrast-rgb: 15, 23, 42;
+  --ion-color-tertiary-shade: #da8115;
+  --ion-color-tertiary-tint: #f99e2f;
+
+  --ion-color-success: #16a34a;
+  --ion-color-success-rgb: 22, 163, 74;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #139041;
+  --ion-color-success-tint: #2dac5c;
+
+  --ion-color-warning: #f89318;
+  --ion-color-warning-rgb: 248, 147, 24;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #da8115;
+  --ion-color-warning-tint: #f99e2f;
+
+  --ion-color-danger: #dc2626;
+  --ion-color-danger-rgb: 220, 38, 38;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #c22121;
+  --ion-color-danger-tint: #e03c3c;
+
+  --ion-color-light: #f8fafc;
+  --ion-color-light-rgb: 248, 250, 252;
+  --ion-color-light-contrast: #0f172a;
+  --ion-color-light-contrast-rgb: 15, 23, 42;
+  --ion-color-light-shade: #dadce0;
+  --ion-color-light-tint: #f9fbfc;
+
+  --ion-color-medium: #64748b;
+  --ion-color-medium-rgb: 100, 116, 139;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #58667a;
+  --ion-color-medium-tint: #748297;
+
+  --ion-color-dark: #0f172a;
+  --ion-color-dark-rgb: 15, 23, 42;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #0d1425;
+  --ion-color-dark-tint: #272e3f;
+
+  /* Custom Design Tokens */
+  --bg-app: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --color-primary-navy: #1d3698;
+  --color-royal-blue: #1d3698;
+  --color-light-blue: #eff3ff;
+  --color-yellow-accent: #f89318;
+  --card-radius: 16px;
+  --card-shadow: 0 4px 20px -2px rgba(29, 54, 152, 0.10);
+  --card-shadow-hover: 0 8px 24px -4px rgba(29, 54, 152, 0.16);
+}

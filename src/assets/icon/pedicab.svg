@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Pedicab Top-Down Ride Icon -->
+  <defs>
+    <filter id="pedicab-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#pedicab-shadow)">
+    <!-- Bicycle Frame / Left Side Driver -->
+    <!-- Front wheel -->
+    <rect x="20" y="4" width="4" height="12" rx="2" fill="#334155"/>
+    <!-- Rear wheel -->
+    <rect x="20" y="46" width="4" height="12" rx="2" fill="#334155"/>
+    <!-- Handlebar -->
+    <rect x="14" y="14" width="16" height="3" rx="1.5" fill="#64748b"/>
+    <!-- Bike frame backbone -->
+    <line x1="22" y1="14" x2="22" y2="48" stroke="#1e293b" stroke-width="3" stroke-linecap="round"/>
+    <!-- Driver seat -->
+    <ellipse cx="22" cy="34" rx="3.5" ry="5" fill="#0f172a"/>
+
+    <!-- Passenger Sidecar (Right side) -->
+    <!-- Connecting struts to sidecar -->
+    <line x1="22" y1="24" x2="38" y2="24" stroke="#475569" stroke-width="3"/>
+    <line x1="22" y1="44" x2="38" y2="44" stroke="#475569" stroke-width="3"/>
+    <!-- Sidecar outer wheel -->
+    <rect x="52" y="32" width="4" height="14" rx="2" fill="#334155"/>
+    <line x1="42" y1="39" x2="52" y2="39" stroke="#475569" stroke-width="3"/>
+
+    <!-- Sidecar Cabin Body -->
+    <rect x="30" y="16" width="22" height="36" rx="6" fill="#1d4ed8"/>
+    <!-- Cabin Roof / Canopy -->
+    <rect x="32" y="20" width="18" height="28" rx="4" fill="#3b82f6"/>
+    <!-- Passenger Seats inside cabin -->
+    <rect x="34" y="36" width="14" height="8" rx="2" fill="#1e3a8a"/>
+
+    <!-- Windshield / Front Hood highlight -->
+    <path d="M 32 20 Q 41 16 50 20" stroke="#93c5fd" stroke-width="2" fill="none" stroke-linecap="round"/>
+    
+    <!-- Headlight glow (Front) -->
+    <circle cx="22" cy="4" r="2.5" fill="#facc15"/>
+    <circle cx="41" cy="15" r="2.5" fill="#facc15"/>
+  </g>
+</svg>
+

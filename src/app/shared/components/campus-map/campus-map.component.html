@@ -1,0 +1,499 @@
+<div class="campus-map-wrapper" [class.compact-mode]="compactHeight" [class.no-header-mode]="!showHeaderControls">
+  
+  <!-- Unified Live Trike & Pilahan Status Header -->
+  <div class="map-controls-header unified-live-map-header" *ngIf="showHeaderControls">
+    <div class="live-map-top-title-row">
+      <div class="live-map-title-block">
+        <span class="pulse-radar-dot"></span>
+        <div class="live-map-texts">
+          <strong>{{ langService.currentLanguage === 'fil' ? 'Live Trike & Pilahan Map' : 'Live Pedicab & Stand Map' }}</strong>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Real-time na pila sa Gate, Gilid ng Arki, at Ronda' : 'Real-time stands at Gate, Architecture, and Roaming' }}</span>
+        </div>
+      </div>
+      <button type="button" class="legend-trigger-btn" (click)="isLegendOpen = true" [title]="langService.currentLanguage === 'fil' ? 'Gabay sa Mapa' : 'Map Legend'">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <span>{{ langService.currentLanguage === 'fil' ? 'Gabay' : 'Legend' }}</span>
+      </button>
+    </div>
+
+    <!-- 3 Compact & Beautiful Interactive Pilahan Summary Cards -->
+    <div class="pilahan-summary-grid">
+      <!-- 1. Pilahan sa Gate -->
+      <button
+        type="button"
+        class="pilahan-stat-card gate-card"
+        [class.is-focused]="trikeFilter === 'gate' || activeTerminalHub === 'gate'"
+        (click)="focusTerminalHub('gate')">
+        <div class="psc-top-row">
+          <span class="psc-emoji">🚏</span>
+          <span class="psc-count-pill gate-pill">{{ gateQueuedBikes.length }} {{ langService.currentLanguage === 'fil' ? 'Trike' : 'Queued' }}</span>
+        </div>
+        <strong class="psc-name">{{ langService.currentLanguage === 'fil' ? 'Pilahan sa Gate' : 'Main Gate Stand' }}</strong>
+        <span class="psc-seats-sub">{{ gateFreeSeats }} {{ langService.currentLanguage === 'fil' ? 'libreng upuan' : 'seats open' }}</span>
+      </button>
+
+      <!-- 2. Gilid ng Arki -->
+      <button
+        type="button"
+        class="pilahan-stat-card arki-card"
+        [class.is-focused]="trikeFilter === 'arki' || activeTerminalHub === 'arki'"
+        (click)="focusTerminalHub('arki')">
+        <div class="psc-top-row">
+          <span class="psc-emoji">🏛️</span>
+          <span class="psc-count-pill arki-pill">{{ arkiQueuedBikes.length }} {{ langService.currentLanguage === 'fil' ? 'Trike' : 'Queued' }}</span>
+        </div>
+        <strong class="psc-name">{{ langService.currentLanguage === 'fil' ? 'Gilid ng Arki' : 'Architecture Stand' }}</strong>
+        <span class="psc-seats-sub">{{ arkiFreeSeats }} {{ langService.currentLanguage === 'fil' ? 'libreng upuan' : 'seats open' }}</span>
+      </button>
+
+      <!-- 3. Nagroronda / Bumabyahe -->
+      <button
+        type="button"
+        class="pilahan-stat-card ronda-card"
+        [class.is-focused]="trikeFilter === 'roaming'"
+        (click)="focusRoamingTrikes()">
+        <div class="psc-top-row">
+          <span class="psc-emoji">🛵</span>
+          <span class="psc-count-pill ronda-pill">{{ roamingOrTravelingBikes.length }} {{ langService.currentLanguage === 'fil' ? 'Trike' : 'Active' }}</span>
+        </div>
+        <strong class="psc-name">{{ langService.currentLanguage === 'fil' ? 'Nagroronda' : 'Roaming' }}</strong>
+        <span class="psc-seats-sub">{{ roamingFreeSeats }} {{ langService.currentLanguage === 'fil' ? 'sa biyahe' : 'on route' }}</span>
+      </button>
+    </div>
+
+    <!-- Quick Filter Chips Row -->
+    <div class="filter-chips-row">
+      <button
+        type="button"
+        class="filter-chip"
+        [class.selected]="trikeFilter === 'all'"
+        (click)="setTrikeFilter('all')">
+        {{ langService.currentLanguage === 'fil' ? 'Lahat' : 'All' }} ({{ allActiveCampusBikes.length }})
+      </button>
+      <button
+        type="button"
+        class="filter-chip chip-gate"
+        [class.selected]="trikeFilter === 'gate'"
+        (click)="setTrikeFilter('gate')">
+        <span class="dot dot-avail"></span> {{ langService.currentLanguage === 'fil' ? 'Sa Gate' : 'Main Gate' }} ({{ gateQueuedBikes.length }})
+      </button>
+      <button
+        type="button"
+        class="filter-chip chip-arki"
+        [class.selected]="trikeFilter === 'arki'"
+        (click)="setTrikeFilter('arki')">
+        <span class="dot dot-arki"></span> {{ langService.currentLanguage === 'fil' ? 'Gilid ng Arki' : 'Architecture' }} ({{ arkiQueuedBikes.length }})
+      </button>
+      <button
+        type="button"
+        class="filter-chip chip-ronda"
+        [class.selected]="trikeFilter === 'roaming'"
+        (click)="setTrikeFilter('roaming')">
+        <span class="dot dot-trip"></span> {{ langService.currentLanguage === 'fil' ? 'Ronda' : 'Roaming' }} ({{ roamingOrTravelingBikes.length }})
+      </button>
+    </div>
+
+    <!-- Active Pin / Geofence Status Banner (Only shown when explicitly in custom pin drop mode) -->
+    <div class="pin-status-banner" *ngIf="enableCustomPickupPin && customPickupPin">
+      <div class="pin-status-content" [class.is-invalid]="customPickupPin && !customPickupPin.isInsideCampusBoundary">
+        <ion-icon [name]="customPickupPin?.isInsideCampusBoundary ? 'shield-checkmark-outline' : 'alert-circle-outline'"></ion-icon>
+        <div class="pin-status-text">
+          <strong>{{ customPickupPin.addressText }}</strong>
+          <span class="coords-tag">
+            Lat: {{ customPickupPin.lat }} • Lng: {{ customPickupPin.lng }}
+            <span class="geofence-tag" [class.geofence-valid]="customPickupPin.isInsideCampusBoundary" [class.geofence-invalid]="!customPickupPin.isInsideCampusBoundary">
+              {{ customPickupPin.isInsideCampusBoundary ? '✓ Inside Campus Boundary' : '⚠️ Outside Permitted Campus' }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEWPORT: MODE A - NEUST Visual Campus Map (Uploaded Map Reference) -->
+  <div 
+    *ngIf="mapMode === 'visual'"
+    #mapViewport
+    class="map-viewport"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp()"
+    (mouseleave)="onMouseUp()"
+    (touchstart)="onTouchStart($event)"
+    (touchmove)="onTouchMove($event)"
+    (touchend)="onTouchEnd()">
+
+    <!-- Transform Canvas (pan & zoom) -->
+    <div 
+      class="map-canvas"
+      [style.transform]="'translate(' + panX + 'px, ' + panY + 'px) scale(' + zoomLevel + ')'"
+      (click)="onVisualMapClick($event)">
+
+      <!-- Base Campus Map Image (Uploaded NEUST map) -->
+      <img 
+        src="assets/images/neust-campus-map.jpg" 
+        alt="NEUST Sumacab Campus Map" 
+        class="base-map-img" 
+        draggable="false" />
+
+      <!-- SVG Overlay for Shuttle Routes, Zones & Live Polyline -->
+      <svg class="routes-svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <!-- Campus boundary outline -->
+        <polygon 
+          points="8.0,92.0 92.0,85.0 95.0,20.0 5.0,15.0" 
+          fill="none" 
+          stroke="rgba(37, 99, 235, 0.25)" 
+          stroke-width="0.8" 
+          stroke-dasharray="2, 2" />
+
+        <!-- Road Network Polylines -->
+        <path 
+          d="M 82 92 L 74 81 L 67 64 L 58 51 L 48 40 L 38 32 L 49 27 L 62 34 L 74 28 L 76 71 Z" 
+          fill="none" 
+          stroke="rgba(37, 99, 235, 0.55)" 
+          stroke-width="1.8" 
+          stroke-dasharray="2.5, 2.5" 
+          stroke-linecap="round" />
+        <path 
+          d="M 58 51 L 67 62 L 76 72" 
+          fill="none" 
+          stroke="rgba(250, 204, 21, 0.6)" 
+          stroke-width="1.5" 
+          stroke-linecap="round" />
+
+        <!-- Feature 4: Live Trip Polyline Route -->
+        <path 
+          *ngIf="trackingSession && customPickupPin"
+          [attr.d]="'M ' + trackingSession.driverCoords.lng + ' ' + trackingSession.driverCoords.lat + ' L ' + customPickupPin.x + ' ' + customPickupPin.y"
+          fill="none"
+          stroke="#2563EB"
+          stroke-width="2.5"
+          stroke-linecap="round" />
+      </svg>
+
+      <!-- CAMPUS DESIGNATED ZONES (Feature 3 in Visual Map) -->
+      <ng-container *ngIf="viewLayer === 'zones' || viewLayer === 'all'">
+        <div 
+          *ngFor="let zone of designatedZones" 
+          class="zone-visual-circle"
+          [class.zone-restricted]="zone.type === 'restricted'"
+          [style.left.%]="zone.center.lng ? (((zone.center.lng - 120.9538) / (120.9622 - 120.9538)) * 100) : 50"
+          [style.top.%]="zone.center.lat ? (((15.4642 - zone.center.lat) / (15.4642 - 15.4562)) * 100) : 50">
+          <div class="zone-ripple"></div>
+          <span class="zone-label-tag">{{ zone.name }}</span>
+        </div>
+      </ng-container>
+
+      <!-- ACTIVE DESTINATION TARGET PIN (Clean pin, only shown when destination is selected) -->
+      <ng-container *ngFor="let loc of visibleLocations">
+        <div 
+          *ngIf="loc.id === selectedDestinationId"
+          class="station-marker selected-dest"
+          [style.left.%]="loc.coordinates.x"
+          [style.top.%]="loc.coordinates.y"
+          (click)="onLocationClicked(loc, $event)">
+          <div class="station-pin-bubble">
+            <span class="station-code">🎯 {{ loc.name }}</span>
+          </div>
+          <div class="pin-anchor"></div>
+        </div>
+      </ng-container>
+
+      <!-- BICYCLE SHUTTLE MARKERS -->
+      <div 
+        *ngFor="let bike of filteredBicycles" 
+        class="bike-marker"
+        [class.bike-on-trip]="bike.status === 'on_trip'"
+        [class.bike-available]="bike.status === 'available'"
+        [class.bike-almost-full]="bike.status === 'almost_full'"
+        [class.bike-full]="bike.status === 'full'"
+        [class.bike-maintenance]="bike.status === 'maintenance'"
+        [style.left.%]="bike.currentLocation.x"
+        [style.top.%]="bike.currentLocation.y"
+        (click)="onBicycleClicked(bike, $event)">
+
+        <div class="marker-pulse-ring" *ngIf="bike.status === 'on_trip' || bike.status === 'available'"></div>
+        
+        <div class="bike-marker-badge">
+          <div class="driver-avatar-mini">
+            <img [src]="bike.driverPhoto" [alt]="bike.driverName" />
+          </div>
+          <div class="bike-info-tag">
+            <span class="bike-num">{{ bike.bikeNumber }}</span>
+            <span class="seat-ratio">{{ bike.passengerCount }}/{{ bike.maxCapacity }}</span>
+          </div>
+        </div>
+
+        <div 
+          class="direction-arrow" 
+          [style.transform]="'rotate(' + bike.heading + 'deg)'">
+          ▲
+        </div>
+      </div>
+
+      <!-- FEATURE 1: CUSTOM PICKUP PIN OVERLAY (Visual Map) -->
+      <div 
+        *ngIf="customPickupPin && customPickupPin.x && customPickupPin.y"
+        class="custom-pickup-pin-marker"
+        [style.left.%]="customPickupPin.x"
+        [style.top.%]="customPickupPin.y">
+        <div class="pin-radar-wave"></div>
+        <div class="pin-icon-bubble">
+          <ion-icon name="pin-outline"></ion-icon>
+        </div>
+        <div class="pin-title-badge">
+          {{ customPickupPin.nearestBuildingName }}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Floating Map Zoom Tools -->
+    <div class="floating-map-tools">
+      <button class="tool-btn" (click)="zoomIn()" title="Zoom In">
+        <ion-icon name="add-outline"></ion-icon>
+      </button>
+      <button class="tool-btn" (click)="zoomOut()" title="Zoom Out">
+        <ion-icon name="remove-outline"></ion-icon>
+      </button>
+      <button class="tool-btn" (click)="resetView()" title="Recenter View">
+        <ion-icon name="locate-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="zoom-level-badge">
+      {{ (zoomLevel * 100).toFixed(0) }}%
+    </div>
+
+  </div>
+
+  <!-- VIEWPORT: MODE B - Interactive Leaflet Map (Features 1, 3, 4, 5) -->
+  <div *ngIf="mapMode === 'leaflet'" class="leaflet-map-wrapper">
+    <div #leafletContainer class="leaflet-map-canvas"></div>
+
+    <!-- Recenter Map Floating Action (Always available for quick recentering) -->
+    <button class="btn-map-recenter-float" (click)="recenterTracking()" title="Recenter View">
+      <ion-icon name="locate-outline"></ion-icon>
+      <span>{{ isLiveTrackingActive() ? 'Focus Pedicab' : 'Recenter' }}</span>
+    </button>
+
+    <!-- Leaflet Map Floating Controls & Legend -->
+    <div class="leaflet-floating-meta" *ngIf="showHeaderControls">
+      <div class="l-status-badge">
+        <span class="live-dot"></span>
+        <span>Leaflet Live GPS Active</span>
+      </div>
+      <div class="l-instruction-chip" *ngIf="enableCustomPickupPin">
+        <ion-icon name="pin-outline"></ion-icon>
+        <span>Drag or click map to move pick-up pin</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEWPORT: MODE C - Satellite / OpenStreetMap Embed -->
+  <div *ngIf="mapMode === 'google'" class="google-map-container">
+    <div class="google-map-frame-wrapper">
+      <iframe
+        title="NEUST Sumacab Google Map"
+        class="google-map-iframe"
+        src="https://www.openstreetmap.org/export/embed.html?bbox=120.9340%2C15.4410%2C120.9450%2C15.4520&amp;layer=mapnik&amp;marker=15.44685%2C120.93945"
+        loading="lazy">
+      </iframe>
+
+      <div class="google-overlay-cards">
+        <div class="g-status-banner">
+          <div class="g-pin-icon">📍</div>
+          <div class="g-meta">
+            <strong>NEUST Sumacab Campus Live GPS</strong>
+            <span>15.4469° N, 120.9395° E • Cabanatuan City</span>
+          </div>
+          <span class="gps-active-badge">GPS ONLINE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING BOTTOM CARD: Terminal Pilahan Hub Info (Pilahan sa Gate / Gilid ng Arki) -->
+  <div class="floating-entity-drawer terminal-hub-drawer" *ngIf="selectedTerminalHubDetail as hub">
+    <button type="button" class="drawer-close-btn" (click)="closeFloatingCard()">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+
+    <div class="drawer-header-row">
+      <div class="drawer-title-group">
+        <span class="drawer-bldg-code">{{ hub.iconEmoji }} {{ langService.currentLanguage === 'fil' ? 'OPISYAL NA PILAHAN NG TRIKE' : 'OFFICIAL PEDICAB STAND' }}</span>
+        <h3 class="drawer-station-name">{{ hub.title }}</h3>
+        <span class="drawer-dest-label">{{ hub.subtitle }}</span>
+      </div>
+      <span class="drawer-battery-pill">
+        <span>{{ hub.queuedBikes.length }} {{ langService.currentLanguage === 'fil' ? 'Nakapila' : 'Queued' }} • {{ hub.totalFreeSeats }} {{ langService.currentLanguage === 'fil' ? 'Upuan' : 'Seats' }}</span>
+      </span>
+    </div>
+
+    <div class="terminal-queued-bikes-list" *ngIf="hub.queuedBikes.length > 0; else emptyTerminalHub">
+      <div class="tqb-item" *ngFor="let qb of hub.queuedBikes">
+        <img [src]="qb.driverPhoto" class="tqb-avatar" [alt]="qb.driverName" />
+        <div class="tqb-info">
+          <div class="tqb-top">
+            <strong>{{ qb.bikeNumber }}</strong>
+            <span class="tqb-seats">{{ qb.maxCapacity - qb.passengerCount }}/{{ qb.maxCapacity }} {{ langService.currentLanguage === 'fil' ? 'Available' : 'Seats Open' }}</span>
+          </div>
+          <span class="tqb-driver">Driver: {{ qb.driverName }}</span>
+        </div>
+        <button type="button" class="btn-tqb-select" (click)="onSelectShuttleFromDrawer(qb)">
+          {{ langService.currentLanguage === 'fil' ? 'Sakyan' : 'Select' }}
+        </button>
+      </div>
+    </div>
+
+    <ng-template #emptyTerminalHub>
+      <p class="drawer-station-desc">{{ langService.currentLanguage === 'fil' ? 'Walang nakaabang na trike sa pilahang ito ngayon. Tingnan ang mga nagrorondang trike sa mapa.' : 'No pedicabs are currently waiting at this stand. Check roaming shuttles on the map.' }}</p>
+    </ng-template>
+
+    <button type="button" class="drawer-primary-btn" (click)="onBookFromTerminalHub(hub.accent)">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <span>{{ langService.currentLanguage === 'fil' ? 'Mag-book Mula sa ' + hub.title : 'Book From ' + hub.title }}</span>
+    </button>
+  </div>
+
+  <!-- FLOATING BOTTOM CARD: Shuttle Info (Works in all Map Modes) -->
+  <div class="floating-entity-drawer" *ngIf="activeBicycle">
+    <button type="button" class="drawer-close-btn" (click)="closeFloatingCard()">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+
+    <div class="drawer-header-row">
+      <div class="drawer-title-group">
+        <span class="drawer-bike-id">{{ activeBicycle.bikeNumber }}</span>
+        <span class="drawer-dest-label">
+          <strong>{{ getBikeLiveLocationBadge(activeBicycle) }}</strong> • {{ activeBicycle.currentLocation.stationName || activeBicycle.currentDestination }}
+        </span>
+      </div>
+      <div class="drawer-battery-pill">
+        <ion-icon name="battery-charging-outline"></ion-icon>
+        <span>{{ activeBicycle.batteryPercent }}%</span>
+      </div>
+    </div>
+
+    <div class="drawer-driver-row">
+      <img [src]="activeBicycle.driverPhoto" class="drawer-driver-img" [alt]="activeBicycle.driverName" />
+      <div class="drawer-driver-meta">
+        <div class="driver-name-rating">
+          <strong>{{ activeBicycle.driverName }}</strong>
+          <span class="driver-rating">★ 4.9</span>
+        </div>
+        <span class="driver-phone-sub">{{ activeBicycle.driverPhone }}</span>
+      </div>
+      <span class="drawer-status-tag" [ngClass]="getStatusBadgeClass(activeBicycle.status)">
+        {{ getStatusText(activeBicycle.status) }}
+      </span>
+    </div>
+
+    <!-- Capacity Progress -->
+    <div class="drawer-capacity-strip">
+      <div class="cap-progress-track">
+        <div 
+          class="cap-progress-fill" 
+          [style.width.%]="(activeBicycle.passengerCount / activeBicycle.maxCapacity) * 100"
+          [class.cap-full-bg]="activeBicycle.passengerCount >= activeBicycle.maxCapacity">
+        </div>
+      </div>
+      <div class="cap-progress-text">
+        <span>{{ activeBicycle.passengerCount }} / {{ activeBicycle.maxCapacity }} {{ langService.currentLanguage === 'fil' ? 'Nakasakay' : 'Passengers' }}</span>
+        <strong class="seats-free">{{ activeBicycle.maxCapacity - activeBicycle.passengerCount }} {{ langService.currentLanguage === 'fil' ? 'Available na Upuan' : 'Seats Available' }}</strong>
+      </div>
+    </div>
+
+    <!-- Action Button -->
+    <button 
+      type="button"
+      class="drawer-primary-btn"
+      [disabled]="activeBicycle.status === 'full' || activeBicycle.status === 'maintenance' || activeBicycle.passengerCount >= activeBicycle.maxCapacity"
+      (click)="onSelectShuttleFromDrawer(activeBicycle)">
+      <ion-icon name="people-outline"></ion-icon>
+      <span>{{ (activeBicycle.status === 'full' || activeBicycle.passengerCount >= activeBicycle.maxCapacity) ? (langService.currentLanguage === 'fil' ? 'Puno na ang Trike (0 Free)' : 'Pedicab is Full (0 Free)') : (langService.currentLanguage === 'fil' ? 'Sakyan / Book itong Trike (' + activeBicycle.bikeNumber + ')' : 'Book this Pedicab (' + activeBicycle.bikeNumber + ')') }}</span>
+    </button>
+  </div>
+
+  <!-- FLOATING BOTTOM CARD: Campus Station Info (Works in all Map Modes) -->
+  <div class="floating-entity-drawer" *ngIf="activeLocation">
+    <button class="drawer-close-btn" (click)="closeFloatingCard()">
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+
+    <div class="drawer-header-row">
+      <div class="drawer-title-group">
+        <span class="drawer-bldg-code">{{ activeLocation.buildingNumber }} • {{ activeLocation.code }}</span>
+        <h3 class="drawer-station-name">{{ activeLocation.name }}</h3>
+      </div>
+      <span class="drawer-wait-badge" *ngIf="activeLocation.waitingCount > 0">
+        {{ activeLocation.waitingCount }} Waiting
+      </span>
+    </div>
+
+    <p class="drawer-station-desc">{{ activeLocation.description }}</p>
+
+    <button class="drawer-primary-btn" (click)="onQueueHere(activeLocation)">
+      <ion-icon name="navigate-outline"></ion-icon>
+      <span>Set as Destination / Queue Here</span>
+    </button>
+  </div>
+
+  <!-- MAP LEGEND MODAL -->
+  <ion-modal [isOpen]="isLegendOpen" (didDismiss)="isLegendOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6, 0.9]">
+    <ng-template>
+      <ion-header class="ion-no-border">
+        <ion-toolbar color="primary">
+          <ion-title>NEUST Campus Map Legend</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="isLegendOpen = false">
+              <ion-icon name="close-outline"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+        <h4 class="legend-section-title">Shuttle Capacity & Status</h4>
+        <div class="legend-item">
+          <div class="legend-color-swatch swatch-avail"></div>
+          <div>
+            <strong>Available (Green)</strong>
+            <p>Multiple seats available for immediate boarding.</p>
+          </div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color-swatch swatch-almost"></div>
+          <div>
+            <strong>Almost Full (Amber)</strong>
+            <p>Only 1 seat remains on this shuttle.</p>
+          </div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color-swatch swatch-trip"></div>
+          <div>
+            <strong>On Active Trip (Royal Blue)</strong>
+            <p>Currently in motion heading toward its destination.</p>
+          </div>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color-swatch swatch-full"></div>
+          <div>
+            <strong>Full Capacity (Red)</strong>
+            <p>Maximum 4 passengers reached. No more boarding allowed.</p>
+          </div>
+        </div>
+
+        <h4 class="legend-section-title">Designated Campus Zones</h4>
+        <div class="legend-item" *ngFor="let zone of designatedZones">
+          <div class="legend-color-swatch" [class.swatch-full]="zone.type === 'restricted'" [class.swatch-trip]="zone.type !== 'restricted'"></div>
+          <div>
+            <strong>{{ zone.name }}</strong>
+            <p>{{ zone.description }} (Radius: {{ zone.radiusMeters }}m)</p>
+          </div>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+</div>
