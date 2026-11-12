@@ -193,7 +193,7 @@
                 <h4>{{ term.name }}</h4>
                 <span class="tc-coords">
                   <ion-icon name="location-outline"></ion-icon>
-                  {{ term.lat }}, {{ term.lng }}
+                  NEUST Sumacab Campus
                 </span>
               </div>
             </div>
@@ -229,7 +229,7 @@
 
             <div class="tc-empty-warning" *ngIf="term.bicycles.length === 0">
               <ion-icon name="alert-circle-outline"></ion-icon>
-              <span>{{ langService.currentLanguage === 'fil' ? 'Kasalukuyang bumibiyahe ang mga pedicab. Paparating na ang susunod na shuttle.' : 'All campus pedicabs are currently on trips. Next shuttle arriving soon.' }}</span>
+              <span>{{ langService.currentLanguage === 'fil' ? 'Kasalukuyang bumibiyahe ang mga pedicab. Paparating na ang susunod na pedicab.' : 'All campus pedicabs are currently on trips. Next pedicab arriving soon.' }}</span>
             </div>
           </div>
 
@@ -269,7 +269,7 @@
   <div *ngIf="currentTab === 'queue'" class="tab-page grab-tab-container solo-booking-page" [class.no-padding]="!myActiveBooking && !myActiveQueue && !recentlyCompletedBooking">
     <!-- Solo Page Header (Back button + Title) for active booking / queue / completed states -->
     <div class="solo-active-header" *ngIf="myActiveBooking || myActiveQueue || recentlyCompletedBooking">
-      <button type="button" class="btn-solo-back" (click)="dismissCompletedBookingBanner(); closeBookingFlow()" title="Bumalik">
+      <button type="button" class="btn-solo-back" (click)="dismissCompletedBookingBanner(); closeBookingFlow()" [title]="langService.currentLanguage === 'fil' ? 'Bumalik' : 'Back'">
         <ion-icon name="arrow-back-outline"></ion-icon>
       </button>
       <div class="solo-title-col">
@@ -331,7 +331,7 @@
       </div>
 
       <div class="searching-meta">
-        <span class="searching-tag">{{ myActiveBooking.bookingNumber }}</span>
+        <span class="searching-tag">{{ myActiveBooking.bookingNumber }} • {{ myActiveBooking.passengerCount || 1 }} {{ (myActiveBooking.passengerCount || 1) === 1 ? 'SEAT' : 'SEATS' }}</span>
         <h3>{{ langService.t('tracking.searching_title') }}</h3>
         <p class="searching-sub">
           {{ langService.t('tracking.searching_sub') }}
@@ -445,7 +445,7 @@
         </div>
         <div class="arrived-content">
           <h4>{{ langService.currentLanguage === 'fil' ? '📍 Nandito na si Kuya Driver sa Sakayan!' : '📍 Driver Has Arrived at Pickup!' }}</h4>
-          <p>{{ langService.currentLanguage === 'fil' ? 'Nasa iyong pickup point na ang pedicab. Maaari ka nang sumakay!' : 'Your pedicab shuttle is waiting at your pickup point. Please board now!' }}</p>
+          <p>{{ langService.currentLanguage === 'fil' ? 'Nasa iyong pickup point na ang pedicab. Maaari ka nang sumakay!' : 'Your pedicab pedicab is waiting at your pickup point. Please board now!' }}</p>
         </div>
       </div>
 
@@ -461,7 +461,7 @@
           <span class="driver-verified">Verified Campus Transportation Driver</span>
         </div>
         <div class="driver-actions-group">
-          <a [href]="'tel:' + (myActiveBooking.assignedDriverPhone || '0917-555-0101')" class="btn-driver-call" title="Tawagan ang Driver">
+          <a [href]="'tel:' + (myActiveBooking.assignedDriverPhone || '0917-555-0101')" class="btn-driver-call" [title]="langService.currentLanguage === 'fil' ? 'Tawagan ang Driver' : 'Call Driver'">
             <ion-icon name="call-outline"></ion-icon>
           </a>
           <button type="button" class="btn-driver-chat-pill" (click)="openMessengerChat(); selectTab('messages')" title="Message Driver">
@@ -615,7 +615,7 @@
             <span class="where-to-placeholder">Where to?</span>
           </div>
 
-          <!-- Promo Banner Card: Campus Pedicab Shuttle (Group Ride style) -->
+          <!-- Promo Banner Card: Campus Pedicab Pedicab (Group Ride style) -->
           <div class="grab-promo-card">
             <div class="promo-text-col">
               <h3>{{ langService.t('book.campus_pedicab') }}</h3>
@@ -961,9 +961,9 @@
           <button
             type="button"
             class="btn-grab-book-pedicab-action"
-            [disabled]="isPickupInvalid || currentCapacityAvailableBikesCount === 0"
+            [disabled]="authService.isAuthenticated && (isPickupInvalid || currentCapacityAvailableBikesCount === 0)"
             (click)="bookPedicabJoyRide()">
-            <span>{{ langService.t('bar.book_btn') }}</span>
+            <span>{{ authService.isAuthenticated ? langService.t('bar.book_btn') : (langService.currentLanguage === 'fil' ? 'Mag-sign in para Mag-book' : 'Sign In to Book') }}</span>
           </button>
         </div>
       </div>
@@ -975,14 +975,14 @@
   <div *ngIf="currentTab === 'history'" class="tab-page history-tab-container">
     <div class="page-title-group">
       <h2>{{ langService.currentLanguage === 'fil' ? 'Kasaysayan ng Biyahe' : 'Ride & Queue History' }}</h2>
-      <p>{{ langService.currentLanguage === 'fil' ? 'Talaan ng mga natapos at nakaraang biyahe sa loob ng campus' : 'Log of completed and past campus shuttle trips' }}</p>
+      <p>{{ langService.currentLanguage === 'fil' ? 'Talaan ng mga natapos at nakaraang biyahe sa loob ng campus' : 'Log of completed and past campus pedicab trips' }}</p>
     </div>
 
     <!-- Empty State -->
     <div *ngIf="!myTripHistory || myTripHistory.length === 0" class="empty-state-card">
       <ion-icon name="time-outline"></ion-icon>
       <h4>{{ langService.currentLanguage === 'fil' ? 'Wala pang natapos na biyahe' : 'No trips recorded yet' }}</h4>
-      <p>{{ langService.currentLanguage === 'fil' ? 'Kapag nakasakay ka sa isang pedicab o shuttle, lalabas dito ang tala ng iyong biyahe at pamasahe.' : 'When you complete a pedicab shuttle ride, your trip receipt will appear here.' }}</p>
+      <p>{{ langService.currentLanguage === 'fil' ? 'Kapag nakasakay ka sa isang pedicab o pedicab, lalabas dito ang tala ng iyong biyahe at pamasahe.' : 'When you complete a pedicab pedicab ride, your trip receipt will appear here.' }}</p>
     </div>
 
     <div class="history-list" *ngIf="myTripHistory && myTripHistory.length > 0">
@@ -1060,7 +1060,7 @@
 
             <p class="dic-snippet">
               <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
-              <span>{{ latestDriverMessage?.message || 'Tinanggap ang biyahe! I-tap para mag-message...' }}</span>
+              <span>{{ latestDriverMessage?.message || (langService.currentLanguage === 'fil' ? 'Tinanggap ang biyahe! I-tap para mag-message...' : 'Booking accepted! Tap to message...') }}</span>
             </p>
           </div>
 
@@ -1093,7 +1093,7 @@
     
     <!-- Messenger Top Header Bar -->
     <div class="messenger-top-bar">
-      <button type="button" class="btn-messenger-back" (click)="closeMessengerChat()" title="Bumalik">
+      <button type="button" class="btn-messenger-back" (click)="closeMessengerChat()" [title]="langService.currentLanguage === 'fil' ? 'Bumalik' : 'Back'">
         <ion-icon name="arrow-back-outline"></ion-icon>
       </button>
 
@@ -1112,7 +1112,7 @@
       </div>
 
       <div class="messenger-actions-right">
-        <a *ngIf="myActiveBooking?.assignedDriverPhone" [href]="'tel:' + myActiveBooking?.assignedDriverPhone" class="btn-messenger-call" title="Tawagan si Driver">
+        <a *ngIf="myActiveBooking?.assignedDriverPhone" [href]="'tel:' + myActiveBooking?.assignedDriverPhone" class="btn-messenger-call" [title]="langService.currentLanguage === 'fil' ? 'Tawagan si Driver' : 'Call Driver'">
           <ion-icon name="call"></ion-icon>
         </a>
       </div>
@@ -1151,7 +1151,7 @@
 
       <div *ngIf="activeBookingMessages.length === 0" class="messenger-empty-hint">
         <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
-        <p>Maaari mo nang imensahe si Kuya Driver patungkol sa iyong pickup location o hintayan.</p>
+        <p>{{ langService.currentLanguage === 'fil' ? 'Maaari mo nang imensahe si Kuya Driver patungkol sa iyong pickup location o hintayan.' : 'You can now message your driver regarding your pickup location.' }}</p>
       </div>
     </div>
 
@@ -1240,7 +1240,7 @@
     <ng-template>
       <ion-header class="ion-no-border">
         <ion-toolbar color="primary">
-          <ion-title>Digital Shuttle Boarding Pass</ion-title>
+          <ion-title>Digital Pedicab Boarding Pass</ion-title>
           <ion-buttons slot="end">
             <ion-button (click)="isTicketQROpen = false">
               <ion-icon name="close-circle-outline"></ion-icon>
@@ -1256,7 +1256,7 @@
           
           <div class="qr-box-simulated">
             <ion-icon name="qr-code-outline" class="large-qr-icon"></ion-icon>
-            <span>Scan at shuttle scanner upon boarding</span>
+            <span>Scan at pedicab scanner upon boarding</span>
           </div>
 
           <div class="qr-route-meta">
@@ -1278,7 +1278,7 @@
               type="text" 
               class="search-text-input" 
               [(ngModel)]="destinationSearchText" 
-              [placeholder]="searchTargetMode === 'pickup' ? 'Maghanap ng pickup location sa campus...' : 'Saan ka pupunta sa campus?'" 
+              [placeholder]="searchTargetMode === 'pickup' ? (langService.currentLanguage === 'fil' ? 'Maghanap ng pickup location sa campus...' : 'Search campus pickup location...') : (langService.currentLanguage === 'fil' ? 'Saan ka pupunta sa campus?' : 'Where are you heading on campus?')" 
               autofocus />
             <button class="clear-search-btn" *ngIf="destinationSearchText" (click)="destinationSearchText = ''">
               <ion-icon name="close-circle-outline"></ion-icon>
@@ -1292,9 +1292,9 @@
         <!-- Mode badge header -->
         <div class="search-mode-banner">
           <span class="mode-tag" [class.mode-pickup]="searchTargetMode === 'pickup'">
-            {{ searchTargetMode === 'pickup' ? 'Pumili ng Pickup Location' : 'Pumili ng Destination' }}
+            {{ searchTargetMode === 'pickup' ? (langService.currentLanguage === 'fil' ? 'Pumili ng Pickup Location' : 'Select Pickup Location') : (langService.currentLanguage === 'fil' ? 'Pumili ng Destination' : 'Select Destination') }}
           </span>
-          <span class="mode-hint">I-type ang pangalan ng building, opisina, o gate</span>
+          <span class="mode-hint">{{ langService.currentLanguage === 'fil' ? 'I-type ang pangalan ng building, opisina, o gate' : 'Type a building, office, or gate name' }}</span>
         </div>
 
         <!-- Quick Destination Pills -->
@@ -1328,7 +1328,7 @@
 
           <div class="empty-search-state" *ngIf="searchFilteredLocations.length === 0">
             <ion-icon name="search-outline"></ion-icon>
-            <p>Walang nahanap na lokasyon sa campus para sa "{{ destinationSearchText }}".</p>
+            <p>{{ langService.currentLanguage === 'fil' ? 'Walang nahanap na lokasyon sa campus para sa' : 'No campus locations found for' }} "{{ destinationSearchText }}".</p>
           </div>
         </div>
       </div>
@@ -1353,7 +1353,7 @@
             alt="Driver" />
           <div class="rate-driver-meta">
             <h4>{{ activeTrackingSession?.driverName || myActiveQueue?.assignedDriverName || 'Pedro Ramirez' }}</h4>
-            <span>{{ activeTrackingSession?.bikeNumber || myActiveQueue?.assignedBikeNumber || 'BIKE-001' }} • Sumacab Shuttle</span>
+            <span>{{ activeTrackingSession?.bikeNumber || myActiveQueue?.assignedBikeNumber || 'BIKE-001' }} • Sumacab Pedicab</span>
           </div>
         </div>
 
@@ -1454,67 +1454,6 @@
         <button class="btn-bikepass-done" (click)="isBikePassModalOpen = false">
           Close Pass
         </button>
-      </div>
-    </ng-template>
-  </ion-modal>
-
-  <!-- ROLE SWITCHER MODAL -->
-  <ion-modal [isOpen]="isRoleModalOpen" (didDismiss)="isRoleModalOpen = false" [initialBreakpoint]="0.52" [breakpoints]="[0, 0.52]">
-    <ng-template>
-      <div class="modal-sheet-container">
-        <div class="modal-sheet-header">
-          <div class="sheet-title-group">
-            <h3>Switch User Role</h3>
-            <p>Experience NEUST BikeGo from any role perspective.</p>
-          </div>
-          <button class="sheet-close-btn" (click)="isRoleModalOpen = false">
-            <ion-icon name="close-outline"></ion-icon>
-          </button>
-        </div>
-
-        <div class="role-cards-grid">
-          <!-- Student -->
-          <div 
-            class="role-option-card"
-            [class.is-selected]="authService.role === 'student'"
-            (click)="selectRole('student')">
-            <div class="role-icon-circle icon-student">
-              <ion-icon name="school-outline"></ion-icon>
-            </div>
-            <div class="role-card-info">
-              <h4>Student / Passenger</h4>
-              <p>Maria Santos • CICT (Bldg 25)</p>
-            </div>
-          </div>
-
-          <!-- Driver -->
-          <div 
-            class="role-option-card"
-            [class.is-selected]="authService.role === 'driver'"
-            (click)="selectRole('driver')">
-            <div class="role-icon-circle icon-driver">
-              <ion-icon name="bicycle-outline"></ion-icon>
-            </div>
-            <div class="role-card-info">
-              <h4>Shuttle Operator / Driver</h4>
-              <p>Juan Dela Cruz • BIKE-003</p>
-            </div>
-          </div>
-
-          <!-- Admin -->
-          <div 
-            class="role-option-card"
-            [class.is-selected]="authService.role === 'admin'"
-            (click)="selectRole('admin')">
-            <div class="role-icon-circle icon-admin">
-              <ion-icon name="shield-checkmark-outline"></ion-icon>
-            </div>
-            <div class="role-card-info">
-              <h4>Campus Administrator</h4>
-              <p>Engr. Roberto Bautista • Fleet Logistics</p>
-            </div>
-          </div>
-        </div>
       </div>
     </ng-template>
   </ion-modal>

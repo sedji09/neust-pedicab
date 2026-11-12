@@ -67,25 +67,6 @@ import { UserRole } from '../../core/models/models';
             <button class="seg-btn" [class.active]="authMode === 'forgot'" (click)="authMode = 'forgot'">Reset</button>
           </div>
 
-          <!-- Quick 1-Click Demo Login Bar -->
-          <div class="demo-login-box">
-            <div class="demo-head">
-              <ion-icon name="flash-outline"></ion-icon>
-              <span>Instant Demo Logins (No password needed)</span>
-            </div>
-            <div class="demo-buttons">
-              <button class="demo-btn demo-student" (click)="loginAsDemo('student')">
-                <ion-icon name="school-outline"></ion-icon> Student
-              </button>
-              <button class="demo-btn demo-driver" (click)="loginAsDemo('driver')">
-                <ion-icon name="bicycle-outline"></ion-icon> Driver
-              </button>
-              <button class="demo-btn demo-admin" (click)="loginAsDemo('admin')">
-                <ion-icon name="shield-checkmark-outline"></ion-icon> Admin
-              </button>
-            </div>
-          </div>
-
           <!-- Sign In Form -->
           <div *ngIf="authMode === 'login'" class="auth-form-body">
             <div class="form-group">
@@ -122,7 +103,7 @@ import { UserRole } from '../../core/models/models';
               <label>Student ID / Driver License No.</label>
               <input type="text" [(ngModel)]="regIdNumber" placeholder="2024-00123" class="form-input" />
             </div>
-            <div class="form-group" style="margin-top: 10px;">
+            <div class="form-group" style="margin-top: 10px;" *ngIf="selectedRole !== 'driver'">
               <label>College / Department</label>
               <input type="text" [(ngModel)]="regDepartment" placeholder="e.g. CICT or Engineering" class="form-input" />
             </div>
@@ -300,11 +281,6 @@ export class AuthModalComponent {
   public onClose(): void {
     this.isOpen = false;
     this.close.emit();
-  }
-
-  public loginAsDemo(role: UserRole): void {
-    this.authService.loginAsDemo(role);
-    this.onClose();
   }
 
   public submitLogin(): void {

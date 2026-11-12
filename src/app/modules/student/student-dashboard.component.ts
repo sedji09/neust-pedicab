@@ -108,7 +108,6 @@ import { CampusMapComponent } from '../../shared/components/campus-map/campus-ma
 export class StudentDashboardComponent implements OnInit, OnDestroy {
   // Navigation tabs: 'home' | 'map' | 'queue' | 'history' | 'messages'
   public currentTab: 'home' | 'map' | 'queue' | 'history' | 'messages' = 'home';
-  public isRoleModalOpen = false;
   public chatInputText: string = '';
 
   // Dedicated Notifications Tab filtering
@@ -144,9 +143,21 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return 'notifications-outline';
   }
 
-  public selectRole(role: UserRole): void {
-    this.authService.loginAsDemo(role);
-    this.isRoleModalOpen = false;
+  private requireSignInForBooking(): boolean {
+    if (this.authService.isAuthenticated) {
+      return true;
+    }
+    const isFil = this.langService.currentLanguage === 'fil';
+    this.displayToast(
+      isFil
+        ? 'Mag-sign in muna para makapag-book ng pedicab. View-only ang Guest mode.'
+        : 'Please sign in first to book a pedicab. Guest mode is view-only.'
+    );
+    if (this.authService.isGuestBrowsing) {
+      this.authService.exitGuestMode();
+    }
+    this.authService.isAuthModalOpen = true;
+    return false;
   }
 
   // Queue form selection
@@ -343,6 +354,8 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   public editDept = '';
 
   private subs = new Subscription();
+  private xamppPollInterval: any = null;
+  private cancelledBookingIds = new Set<string>();
 
   public setAppLanguage(lang: SupportedLanguage): void {
     this.langService.setLanguage(lang);
@@ -372,7 +385,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     if (user) {
       this.editName = user.fullName || '';
       this.editPhone = user.phone || '';
-      this.editDept = user.department || 'College of Information & Communications Tech (CICT)';
+      this.editDept = user.department || 'College of Information & Communications Technology (CICT)';
     }
 
     // Subscribe to Geolocation
@@ -424,6 +437,16 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         }
         this.updateNearestBicycles();
         this.cdr.detectChanges();
+      })
+    );
+
+    // Subscribe to Chat Messages for real-time cross-tab messages from driver
+    this.subs.add(
+      this.chatService.messages$.subscribe(() => {
+        this.cdr.detectChanges();
+        if (this.isMessengerOpen) {
+          setTimeout(() => this.scrollToBottom(), 60);
+        }
       })
     );
 
@@ -484,9 +507,49 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     // Set initial custom pickup pin at NEUST Terminal / Main Entrance (inside boundary)
     const locs = this.stateService.getStateSnapshot().locations;
     this.customPickupPin = this.pickupService.buildPickupPin(15.444889, 120.940417, locs);
+
+    // Poll XAMPP backend every 2 seconds for cross-device booking & live driver GPS updates
+    this.xamppPollInterval = setInterval(() => {
+      const active = this.myActiveBooking;
+      if (!active || this.cancelledBookingIds.has(active.id)) return;
+
+      this.apiService.getBookingStatusXampp(active.id).subscribe(res => {
+        if (this.cancelledBookingIds.has(active.id) || this.myActiveBooking?.id !== active.id) return;
+        if (res.success && res.booking) {
+          this.stateService.syncRemoteBooking(res.booking);
+          this.cdr.detectChanges();
+        }
+      });
+
+      if (
+        active.status === 'driver_arriving' ||
+        active.status === 'driver_arrived' ||
+        active.status === 'in_progress'
+      ) {
+        this.apiService.getLiveTrackingXampp(active.id, active.studentId).subscribe(trackRes => {
+          const driver = trackRes?.booking?.driver;
+          if (trackRes?.status === 'success' && driver?.lat && driver?.lng) {
+            const bikeNo = driver.bike_number || active.assignedBikeNumber;
+            if (bikeNo) {
+              this.stateService.syncRemoteDriverLocation(
+                bikeNo,
+                Number(driver.lat),
+                Number(driver.lng),
+                driver.heading !== undefined ? Number(driver.heading) : undefined
+              );
+              this.cdr.detectChanges();
+            }
+          }
+        });
+      }
+    }, 2000);
   }
 
   ngOnDestroy(): void {
+    if (this.xamppPollInterval) {
+      clearInterval(this.xamppPollInterval);
+      this.xamppPollInterval = null;
+    }
     this.stateService.setMessengerOpen(false);
     this.subs.unsubscribe();
   }
@@ -555,6 +618,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   // --- Queue Actions ---
 
   public joinQueueAction(): void {
+    if (!this.requireSignInForBooking()) {
+      return;
+    }
+
     if (this.customPickupPin && !this.customPickupPin.isInsideCampusBoundary) {
       this.displayToast('Cannot confirm booking: Please drag your pickup pin inside NEUST campus grounds.');
       return;
@@ -635,7 +702,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     return this.stateService.getStateSnapshot().trips;
   }
 
-  // Available shuttles count & list
+  // Available pedicabs count & list
   public get availableBikesCount(): number {
     return this.stateService.getStateSnapshot().bicycles.filter(b => b.status === 'available' || b.status === 'almost_full').length;
   }
@@ -775,6 +842,9 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   public bookPedicab(bike: Bicycle): void {
+    if (!this.requireSignInForBooking()) {
+      return;
+    }
     this.selectedBike = bike;
     this.selectTab('queue');
     this.grabScreen = 'confirm';
@@ -783,23 +853,34 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
 
   // --- JoyRide Enhanced Transportation Booking ---
 
+  private cachedActiveTripPinKey = '';
+  private cachedActiveTripPin: CustomPickupPin | null = null;
+
   public get myActiveBooking(): BookingRequest | undefined {
     const studentId = this.authService.currentUser?.id || 'student-001';
     return this.stateService.getActiveBookingForStudent(studentId);
   }
 
   public get activeTripPickupPin(): CustomPickupPin | null {
-    if (this.myActiveBooking) {
-      return {
-        lat: this.myActiveBooking.pickupLat,
-        lng: this.myActiveBooking.pickupLng,
-        addressText: this.myActiveBooking.pickupName,
-        nearestBuildingName: this.myActiveBooking.pickupName,
-        nearestBuildingNumber: '',
-        distanceToNearestMeters: 0,
-        isInsideCampusBoundary: true
-      };
+    const active = this.myActiveBooking;
+    if (active) {
+      const key = `${active.id}::${active.pickupLat}::${active.pickupLng}::${active.pickupName}`;
+      if (key !== this.cachedActiveTripPinKey || !this.cachedActiveTripPin) {
+        this.cachedActiveTripPinKey = key;
+        this.cachedActiveTripPin = {
+          lat: active.pickupLat,
+          lng: active.pickupLng,
+          addressText: active.pickupName,
+          nearestBuildingName: active.pickupName,
+          nearestBuildingNumber: '',
+          distanceToNearestMeters: 0,
+          isInsideCampusBoundary: true
+        };
+      }
+      return this.cachedActiveTripPin;
     }
+    this.cachedActiveTripPinKey = '';
+    this.cachedActiveTripPin = null;
     return this.customPickupPin;
   }
 
@@ -822,6 +903,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   public bookPedicabJoyRide(): void {
+    if (!this.requireSignInForBooking()) {
+      return;
+    }
+
     if (this.isPickupInvalid) {
       this.displayToast('⚠️ Nasa labas ng campus boundary ang pickup point mo. Mangyaring i-pin ito sa loob ng NEUST.');
       return;
@@ -841,7 +926,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const pickupLng = this.customPickupPin?.lng || 120.940417;
 
     const dest = this.selectedDestination;
-    const destName = dest ? `${dest.name} (${dest.buildingNumber})` : 'College of Information & Communications Tech (CICT)';
+    const destName = dest ? `${dest.name} (${dest.buildingNumber})` : 'College of Information & Communications Technology (CICT)';
     const destLat = dest ? (dest.dropoffCoordinates?.lat ?? dest.coordinates.lat) : 15.449353;
     const destLng = dest ? (dest.dropoffCoordinates?.lng ?? dest.coordinates.lng) : 120.940410;
 
@@ -861,64 +946,44 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         locationId: this.selectedDestId
       },
       this.passengerCount,
-      this.selectedBike?.bikeNumber || 'BIKE-003'
+      this.selectedBike?.bikeNumber
     );
 
     this.lastKnownActiveBookingId = booking.id;
     this.recentlyCompletedBooking = null;
 
-    // Call XAMPP backend asynchronously
-    this.apiService.createBookingXampp(booking).subscribe();
-
-    this.displayToast('Ipinaabot na sa mga online na Driver! Naghihintay ng pag-accept...');
-
-    // Fallback auto-dispatch after 22s only if no real Driver tab accepted it yet
-    setTimeout(() => {
-      const snap = this.stateService.getStateSnapshot();
-      const current = (snap.bookings || []).find(b => b.id === booking.id);
-      if (current && current.status === 'searching') {
-        this.simulateDriverAcceptNow(booking.id);
+    // Call XAMPP backend asynchronously and lock onto server booking_uid for 2-phone sync
+    this.apiService.createBookingXampp(booking).subscribe(res => {
+      if (res.success && res.booking?.id) {
+        if (this.cancelledBookingIds.has(booking.id)) {
+          this.cancelledBookingIds.add(res.booking.id);
+          this.apiService.cancelBookingXampp(res.booking.id).subscribe();
+          return;
+        }
+        this.lastKnownActiveBookingId = res.booking.id;
+        this.stateService.syncRemoteBooking(res.booking, booking.id);
+      } else if (!res.success && (res as any).existingBookingUid) {
+        // If an old stuck booking exists in MySQL, cancel it and re-push this booking cleanly
+        const oldId = (res as any).existingBookingUid;
+        this.apiService.cancelBookingXampp(oldId, 'Replaced by new booking').subscribe(() => {
+          this.apiService.createBookingXampp(booking).subscribe(retryRes => {
+            if (retryRes.success && retryRes.booking?.id) {
+              this.lastKnownActiveBookingId = retryRes.booking.id;
+              this.stateService.syncRemoteBooking(retryRes.booking, booking.id);
+            }
+          });
+        });
       }
-    }, 22000);
-  }
-
-  public simulateDriverAcceptNow(bookingId: string): void {
-    const snap = this.stateService.getStateSnapshot();
-    const current = (snap.bookings || []).find(b => b.id === bookingId);
-    if (!current || current.status !== 'searching') return;
-
-    const bike =
-      this.selectedBike ||
-      (snap.bicycles || []).find(b => b.bikeNumber === 'BIKE-003' && b.status !== 'offline' && b.status !== 'maintenance') ||
-      this.bookingPedicab ||
-      (snap.bicycles || []).find(b => b.status === 'available') ||
-      (snap.bicycles || [])[0];
-
-    const driverName = bike?.driverName || 'Juan Dela Cruz';
-    const driverId = bike?.driverId || 'driver-003';
-    const bikeNum = bike?.bikeNumber || 'BIKE-003';
-    const driverPhoto = bike?.driverPhoto || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80';
-
-    this.stateService.driverRespondBooking(
-      bookingId,
-      {
-        id: driverId,
-        name: driverName,
-        phone: bike?.driverPhone || '0917-555-0103',
-        photo: driverPhoto,
-        bikeNumber: bikeNum
-      },
-      'accept'
-    );
-
-    this.chatService.initBookingWelcome({
-      ...current,
-      assignedDriverName: driverName,
-      assignedDriverId: driverId,
-      assignedBikeNumber: bikeNum
     });
 
-    this.displayToast(`Tinanggap ni ${driverName} (${bikeNum}) ang iyong biyahe!`);
+    const eligibleCount = booking.eligibleBikeNumbers?.length || 0;
+    const bikesText = booking.eligibleBikeNumbers?.join(', ') || 'online pedicabs';
+    const isFil = this.langService.currentLanguage === 'fil';
+    this.displayToast(
+      isFil
+        ? `📡 Nag-popup na sa ${eligibleCount} available na pedicab (${bikesText}) na may ≥${this.passengerCount} upuan! Paunahan sila sa pag-accept.`
+        : `📡 Sent request to ${eligibleCount} available pedicab(s) (${bikesText}) with ≥${this.passengerCount} open seats! Waiting for a driver to accept.`
+    );
   }
 
   public dismissCompletedBookingBanner(): void {
@@ -927,6 +992,10 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   public cancelBookingJoyRide(bookingId: string): void {
+    this.cancelledBookingIds.add(bookingId);
+    this.lastKnownActiveBookingId = null;
+    this.recentlyCompletedBooking = null;
+    this.grabScreen = 'entry';
     this.stateService.cancelTransportationBooking(bookingId);
     this.apiService.cancelBookingXampp(bookingId).subscribe();
     this.displayToast('Booking request cancelled.');
@@ -1023,6 +1092,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           return false;
         }
 
+        if (!bike.currentLocation) return false;
         const dist = this.bicycleFinder.calculateHaversineDistance(
           term.lat,
           term.lng,
@@ -1153,7 +1223,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         isFil ? '📍 Nandiyan na si Kuya Driver!' : '📍 Driver Has Arrived at Pickup!',
         isFil
           ? `Nandito na si Kuya ${booking.assignedDriverName || 'Driver'} (${booking.assignedBikeNumber}) sa ${booking.pickupName}! Maaari ka nang sumakay.`
-          : `Kuya ${booking.assignedDriverName || 'Driver'} (${booking.assignedBikeNumber}) has arrived at ${booking.pickupName}! Please meet your shuttle.`,
+          : `Kuya ${booking.assignedDriverName || 'Driver'} (${booking.assignedBikeNumber}) has arrived at ${booking.pickupName}! Please meet your pedicab.`,
         'trip',
         undefined,
         undefined,
@@ -1185,8 +1255,6 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   public displayToast(msg: string, type: 'trip' | 'queue' | 'system' | 'safety' | 'driver' = 'system'): void {
-    this.toastMessage = msg;
-    this.showToast = true;
     this.notificationService.showInAppToast('NEUST BikeGo', msg, type);
   }
 }

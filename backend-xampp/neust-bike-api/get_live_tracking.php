@@ -118,6 +118,8 @@ try {
                 'phone' => $booking['assigned_driver_phone'] ?? '0917-555-0101',
                 'bike_number' => $booking['assigned_bike_number'] ?? 'BIKE-003',
                 'photo' => $booking['driver_photo'] ?? null,
+                'lat' => floatval($booking['driver_lat'] ?? $booking['pickup_lat']),
+                'lng' => floatval($booking['driver_lng'] ?? $booking['pickup_lng']),
                 'current_lat' => floatval($booking['driver_lat'] ?? $booking['pickup_lat']),
                 'current_lng' => floatval($booking['driver_lng'] ?? $booking['pickup_lng']),
                 'heading' => floatval($booking['driver_heading']),

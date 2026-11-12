@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Capacitor } from '@capacitor/core';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { User, RegisterUserDto, BookingRequest, BookingStatus } from '../models/models';
+import { User, RegisterUserDto, BookingRequest, BookingStatus, Bicycle } from '../models/models';
 
 @Injectable({
   providedIn: 'root'
@@ -12,16 +13,38 @@ export class ApiService {
   // - In browser: http://localhost/neust-bike-api
   // - In Android APK via WiFi: http://192.168.x.x/neust-bike-api (Replace with PC's IPv4 address)
   private readonly DEFAULT_API_URL = 'http://localhost/neust-bike-api';
+  private readonly NATIVE_DEFAULT_API_URL = 'http://192.168.100.14/neust-bike-api';
   private readonly URL_STORAGE_KEY = 'neust_bikego_api_base_url';
 
   constructor(private http: HttpClient) {}
 
   public getApiBaseUrl(): string {
-    return localStorage.getItem(this.URL_STORAGE_KEY) || this.DEFAULT_API_URL;
+    const saved = localStorage.getItem(this.URL_STORAGE_KEY);
+    if (saved) return saved;
+
+    // In native Capacitor APK (e.g. running on an Android phone)
+    if (Capacitor.isNativePlatform()) {
+      return this.NATIVE_DEFAULT_API_URL;
+    }
+
+    // In a web browser: If accessed via LAN IP (e.g., http://192.168.x.x:8100 or :4200),
+    // automatically route API requests to the host machine's Apache server on port 80
+    if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+      const host = window.location.hostname;
+      if (host !== 'localhost' && host !== '127.0.0.1' && host !== '0.0.0.0') {
+        return `http://${host}/neust-bike-api`;
+      }
+    }
+
+    return this.DEFAULT_API_URL;
   }
 
   public setApiBaseUrl(url: string): void {
     const cleanUrl = url.trim().replace(/\/+$/, '');
+    if (!cleanUrl) {
+      localStorage.removeItem(this.URL_STORAGE_KEY);
+      return;
+    }
     localStorage.setItem(this.URL_STORAGE_KEY, cleanUrl);
   }
 
@@ -76,8 +99,11 @@ export class ApiService {
     );
   }
 
-  public getBookingStatusXampp(bookingId: string): Observable<{ success: boolean; booking?: BookingRequest }> {
-    const url = `${this.getApiBaseUrl()}/get_booking_status.php?id=${encodeURIComponent(bookingId)}`;
+  public getBookingStatusXampp(bookingId: string, studentId?: string): Observable<{ success: boolean; booking?: BookingRequest }> {
+    const qs = studentId
+      ? `id=${encodeURIComponent(bookingId)}&studentId=${encodeURIComponent(studentId)}`
+      : `id=${encodeURIComponent(bookingId)}`;
+    const url = `${this.getApiBaseUrl()}/get_booking_status.php?${qs}`;
     return this.http.get<{ success: boolean; booking?: BookingRequest }>(url).pipe(
       catchError(err => of({ success: false }))
     );
@@ -149,6 +175,34 @@ export class ApiService {
     const url = `${this.getApiBaseUrl()}/get_live_tracking.php?booking_id=${encodeURIComponent(bookingId)}&student_uid=${encodeURIComponent(studentUid || '')}`;
     return this.http.get<any>(url).pipe(
       catchError(err => of({ status: 'error', message: 'Tracking unreachable' }))
+    );
+  }
+
+  public getBicyclesXampp(): Observable<{ success: boolean; bicycles?: Bicycle[]; message?: string }> {
+    const url = `${this.getApiBaseUrl()}/get_bicycles.php`;
+    return this.http.get<{ success: boolean; bicycles?: Bicycle[]; message?: string }>(url).pipe(
+      catchError(err => of({ success: false, bicycles: [] }))
+    );
+  }
+
+  public upsertBicycleXampp(bike: Bicycle): Observable<{ success: boolean; message: string }> {
+    const url = `${this.getApiBaseUrl()}/update_bicycle_status.php`;
+    return this.http.post<{ success: boolean; message: string }>(url, {
+      bikeNumber: bike.bikeNumber,
+      driverName: bike.driverName,
+      driverPhone: bike.driverPhone,
+      driverPhoto: bike.driverPhoto,
+      status: bike.status,
+      passengerCount: bike.passengerCount,
+      maxCapacity: bike.maxCapacity,
+      lat: bike.currentLocation?.lat ?? 15.444889,
+      lng: bike.currentLocation?.lng ?? 120.940417,
+      currentStation: bike.currentLocation?.stationName ?? 'NEUST Gate & Trike Bike Terminal (Terminal)',
+      currentDestination: bike.currentDestination ?? 'Available for Campus Trips',
+      speedKmH: bike.speedKmH ?? 0,
+      batteryPercent: bike.batteryPercent ?? 95
+    }).pipe(
+      catchError(err => of({ success: false, message: 'XAMPP bicycle sync skipped (offline mode)' }))
     );
   }
 }

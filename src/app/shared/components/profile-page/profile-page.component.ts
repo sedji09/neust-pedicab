@@ -18,12 +18,14 @@ import {
   schoolOutline,
   closeCircleOutline,
   logInOutline,
-  personAddOutline
+  personAddOutline,
+  serverOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/services/auth.service';
 import { StateService } from '../../../core/services/state.service';
 import { LanguageService, SupportedLanguage } from '../../../core/services/language.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { ApiService } from '../../../core/services/api.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -77,7 +79,7 @@ import { NotificationService } from '../../../core/services/notification.service
               </span>
               <span class="pill-id">{{ authService.currentUser.idNumber }}</span>
             </div>
-            <span class="profile-hero-dept">{{ authService.currentUser.department || 'College of Information & Communications Tech (CICT)' }}</span>
+            <span class="profile-hero-dept">{{ authService.currentUser.department || 'College of Information & Communications Technology (CICT)' }}</span>
           </div>
         </div>
 
@@ -134,7 +136,7 @@ import { NotificationService } from '../../../core/services/notification.service
             <div class="stat-divider"></div>
             <div class="stat-cell">
               <span class="stat-num active">{{ authService.currentUser?.assignedBicycleNumber || 'BIKE-003' }}</span>
-              <span class="stat-label">ASSIGNED SHUTTLE</span>
+              <span class="stat-label">ASSIGNED PEDICAB</span>
             </div>
           </ng-container>
 
@@ -270,20 +272,20 @@ import { NotificationService } from '../../../core/services/notification.service
               </div>
               <div class="action-item-text">
                 <strong>{{ isFil ? 'Gumawa ng Bagong Account (Register)' : 'Create New Account' }}</strong>
-                <span>{{ isFil ? 'Magrehistro bilang bagong estudyante sa NEUST' : 'Register as a student or shuttle driver' }}</span>
+                <span>{{ isFil ? 'Magrehistro bilang bagong estudyante sa NEUST' : 'Register as a student or pedicab driver' }}</span>
               </div>
               <ion-icon name="chevron-forward-outline" class="action-arrow"></ion-icon>
             </button>
           </ng-container>
 
-          <!-- Switch User Role (Student, Driver, Admin Demo) -->
-          <button type="button" class="action-item-row" (click)="isRoleModalOpen = true">
+          <!-- XAMPP Server URL (2-Phone Sync) -->
+          <button type="button" class="action-item-row" (click)="openServerUrlModal()">
             <div class="action-item-icon icon-indigo">
-              <ion-icon name="swap-horizontal-outline"></ion-icon>
+              <ion-icon name="server-outline"></ion-icon>
             </div>
             <div class="action-item-text">
-              <strong>Demo Switcher</strong>
-              <span>Subukan bilang: Student, Driver, o Admin</span>
+              <strong>{{ isFil ? 'Server URL (2-Phone Sync)' : 'Server URL (2-Phone Sync)' }}</strong>
+              <span>{{ apiService.getApiBaseUrl() }}</span>
             </div>
             <ion-icon name="chevron-forward-outline" class="action-arrow"></ion-icon>
           </button>
@@ -370,33 +372,22 @@ import { NotificationService } from '../../../core/services/notification.service
         </ng-template>
       </ion-modal>
 
-      <!-- Switch Role Modal -->
-      <ion-modal [isOpen]="isRoleModalOpen" (didDismiss)="isRoleModalOpen = false" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5]">
+      <!-- Server URL Modal (2-Phone XAMPP Sync) -->
+      <ion-modal [isOpen]="isServerModalOpen" (didDismiss)="isServerModalOpen = false" [initialBreakpoint]="0.45" [breakpoints]="[0, 0.45, 0.7]">
         <ng-template>
           <ion-header class="ion-no-border">
-            <ion-toolbar color="primary">
-              <ion-title>Switch User Role</ion-title>
+            <ion-toolbar>
+              <ion-title>XAMPP Server URL</ion-title>
               <ion-buttons slot="end">
-                <ion-button (click)="isRoleModalOpen = false">
-                  <ion-icon name="close-circle-outline"></ion-icon>
-                </ion-button>
+                <ion-button (click)="isServerModalOpen = false">Close</ion-button>
               </ion-buttons>
             </ion-toolbar>
           </ion-header>
           <ion-content class="ion-padding">
-            <div class="role-selector-list">
-              <button class="role-choice-btn" [class.is-selected]="authService.role === 'student'" (click)="selectRole('student')">
-                <strong>Student Passenger</strong>
-                <span>Book rides, track pedicabs, digital campus passes</span>
-              </button>
-              <button class="role-choice-btn" [class.is-selected]="authService.role === 'driver'" (click)="selectRole('driver')">
-                <strong>Pedicab Driver</strong>
-                <span>Accept bookings, GPS tracking, passenger queues</span>
-              </button>
-              <button class="role-choice-btn" [class.is-selected]="authService.role === 'admin'" (click)="selectRole('admin')">
-                <strong>Campus Administrator</strong>
-                <span>Fleet telemetry, campus mapping, location approval</span>
-              </button>
+            <div class="modal-form-body">
+              <label>Laptop IPv4 / XAMPP API URL (same Wi-Fi/Hotspot)</label>
+              <input type="text" [(ngModel)]="editServerUrl" class="modal-input" placeholder="http://192.168.100.14/neust-bike-api" />
+              <button class="btn-save-modal" (click)="saveServerUrl()">Save Server URL</button>
             </div>
           </ion-content>
         </ng-template>
@@ -1054,16 +1045,18 @@ export class ProfilePageComponent implements OnInit {
 
   public isEditModalOpen = false;
   public isPasswordModalOpen = false;
-  public isRoleModalOpen = false;
+  public isServerModalOpen = false;
 
   public editPhone = '';
   public editDept = '';
+  public editServerUrl = '';
 
   constructor(
     public authService: AuthService,
     public stateService: StateService,
     public langService: LanguageService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    public apiService: ApiService
   ) {
     addIcons({
       arrowBackOutline,
@@ -1080,8 +1073,24 @@ export class ProfilePageComponent implements OnInit {
       schoolOutline,
       closeCircleOutline,
       logInOutline,
-      personAddOutline
+      personAddOutline,
+      serverOutline
     });
+  }
+
+  public openServerUrlModal(): void {
+    this.editServerUrl = this.apiService.getApiBaseUrl();
+    this.isServerModalOpen = true;
+  }
+
+  public saveServerUrl(): void {
+    this.apiService.setApiBaseUrl(this.editServerUrl);
+    this.isServerModalOpen = false;
+    this.notificationService.notify(
+      'Server URL Saved',
+      `API endpoint set to ${this.apiService.getApiBaseUrl()}`,
+      'system'
+    );
   }
 
   ngOnInit(): void {
@@ -1138,12 +1147,6 @@ export class ProfilePageComponent implements OnInit {
   public savePasswordChanges(): void {
     this.notificationService.notify('Password Updated', 'Your security password has been changed.', 'system');
     this.isPasswordModalOpen = false;
-  }
-
-  public selectRole(role: 'student' | 'driver' | 'admin'): void {
-    this.authService.switchRole(role);
-    this.isRoleModalOpen = false;
-    this.close.emit();
   }
 
   public handleLogout(): void {

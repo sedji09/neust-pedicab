@@ -364,7 +364,7 @@ export class AdminDashboardComponent implements OnInit {
     if (!this.selectedReport) return;
     this.stateService.updateMaintenanceStatus(this.selectedReport.id, 'resolved', this.adminResolutionNotes);
     this.isReviewMaintenanceModalOpen = false;
-    this.displayToast(`Report ${this.selectedReport.reportNumber} resolved! Shuttle ${this.selectedReport.bicycleNumber} restored.`);
+    this.displayToast(`Report ${this.selectedReport.reportNumber} resolved! Pedicab ${this.selectedReport.bicycleNumber} restored.`);
   }
 
   public setReportUnderMaintenance(): void {

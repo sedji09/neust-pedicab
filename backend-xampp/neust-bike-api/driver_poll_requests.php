@@ -39,6 +39,7 @@ echo json_encode([
         'studentName' => $b['student_name'],
         'studentPhone' => $b['student_phone'],
         'studentIdNumber' => $b['student_id_number'],
+        'passengerCount' => max(1, min(4, intval(round(($b['fare_amount'] ?? 10) / 10)))),
         'pickupName' => $b['pickup_name'],
         'pickupLat' => floatval($b['pickup_lat']),
         'pickupLng' => floatval($b['pickup_lng']),
@@ -50,7 +51,8 @@ echo json_encode([
         'estimatedMinutes' => intval($b['estimated_minutes']),
         'fareAmount' => floatval($b['fare_amount']),
         'status' => $b['status'],
-        'requestExpiresAt' => intval($b['request_expires_at'])
+        'requestExpiresAt' => intval($b['request_expires_at']),
+        'rejectedDriverIds' => json_decode($b['rejected_driver_ids'] ?: '[]', true)
     ]
 ]);
 

@@ -215,14 +215,14 @@ export class NotificationService {
         if (Notification.permission === 'granted') {
           new Notification(title, {
             body: message,
-            icon: 'assets/icon/favicon.png'
+            icon: 'assets/images/BikeGO_logo.png'
           });
         } else if (Notification.permission !== 'denied') {
           Notification.requestPermission().then(permission => {
             if (permission === 'granted') {
               new Notification(title, {
                 body: message,
-                icon: 'assets/icon/favicon.png'
+                icon: 'assets/images/BikeGO_logo.png'
               });
             }
           });
@@ -365,7 +365,15 @@ export class NotificationService {
 
       // 2. Capacitor Native Mobile Haptics
       if (Capacitor.isNativePlatform()) {
-        if (subtype === 'arrival' || subtype === 'completed') {
+        if (subtype === 'arrival') {
+          // Strong noticeable vibration motor for driver arrival
+          await Haptics.vibrate({ duration: 600 });
+        } else if (subtype === 'request') {
+          // Alert vibration for incoming ride booking
+          await Haptics.vibrate({ duration: 450 });
+        } else if (subtype === 'completed') {
+          await Haptics.notification({ type: NotificationType.Success });
+        } else if (subtype === 'accepted') {
           await Haptics.notification({ type: NotificationType.Success });
         } else {
           await Haptics.impact({ style: ImpactStyle.Heavy });
@@ -373,6 +381,21 @@ export class NotificationService {
       }
     } catch {
       // Haptics unavailable
+    }
+  }
+
+  /**
+   * Quick tactile tap feel for button clicks
+   */
+  public async triggerTapHaptic(): Promise<void> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      } else if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(30);
+      }
+    } catch {
+      // Ignore
     }
   }
 }

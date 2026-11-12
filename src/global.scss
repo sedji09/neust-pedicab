@@ -183,34 +183,60 @@ button, .clickable-pill, .interactive-card {
       padding: 4px 2px;
     }
 
+    > ion-icon,
+    .nav-icon-badge-box ion-icon {
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+      display: block;
+      transition: transform 0.2s ease, color 0.2s ease;
+
+      @media (max-width: 360px) {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+
     .nav-icon-badge-box {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-
-      ion-icon {
-        font-size: 22px;
-        transition: transform 0.2s ease, color 0.2s ease;
-
-        @media (max-width: 360px) {
-          font-size: 20px;
-        }
-      }
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
 
       .badge-dot-indicator {
         position: absolute;
-        top: -1px;
-        right: -3px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
+        top: -4px;
+        right: -6px;
+        min-width: 15px;
+        height: 15px;
+        padding: 0 3.5px;
+        border-radius: 9999px;
         background: #dc2626;
         border: 1.5px solid #ffffff;
+        color: #ffffff;
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        &:empty {
+          top: -1px;
+          right: -3px;
+          min-width: 8px;
+          width: 8px;
+          height: 8px;
+          padding: 0;
+        }
       }
     }
 
-    span {
+    > span {
       font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.1px;
@@ -241,12 +267,13 @@ button, .clickable-pill, .interactive-card {
     &.is-active {
       color: #2563eb;
 
+      > ion-icon,
       .nav-icon-badge-box ion-icon {
         color: #2563eb;
         transform: scale(1.1);
       }
 
-      span {
+      > span {
         color: #2563eb;
         font-weight: 800;
       }

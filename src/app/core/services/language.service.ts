@@ -47,7 +47,7 @@ export class LanguageService {
 
       // Home Tab
       'home.available_pedicabs': 'Available Pedicabs',
-      'home.available_sub': 'Campus trike shuttle fleet ready for passengers',
+      'home.available_sub': 'Campus trike pedicab fleet ready for passengers',
       'home.ready_count': '{count} Ready',
       'home.seats_left': '{count} / {max} Seats Left',
       'home.driver': 'Driver:',
@@ -60,7 +60,7 @@ export class LanguageService {
       'home.track_ride_btn': 'View Live Ride & Tracking',
       'home.quick_book_tag': 'Campus Transit',
       'home.quick_book_title': 'Book a Campus Pedicab',
-      'home.quick_book_sub': 'Safe and fast point-to-point shuttle inside NEUST Sumacab',
+      'home.quick_book_sub': 'Safe and fast point-to-point pedicab inside NEUST Sumacab',
       'home.where_to_placeholder': 'Where to? (e.g. CICT, Gym, Library)',
       'home.active_booking_title': 'Your Active Booking',
 
@@ -95,7 +95,7 @@ export class LanguageService {
       'book.nearest_badge': 'Nearest',
       'book.no_pedicabs': 'No Pedicabs Available',
       'book.no_pedicabs_sub': 'All campus pedicabs are currently on trips or offline.',
-      'book.wait_shuttle': 'Wait for Next Shuttle',
+      'book.wait_shuttle': 'Wait for Next Pedicab',
 
       // Booking Step 4: Trip Notes
       'book.step4': 'Trip Notes (Optional)',
@@ -154,7 +154,7 @@ export class LanguageService {
       // Profile & Settings
       'profile.title': 'Profile & Settings',
       'profile.guest_title': 'Welcome to NEUST BikeGo',
-      'profile.guest_sub': 'Create an account or sign in to book campus rides, track pedicabs in real-time, and manage your digital shuttle pass.',
+      'profile.guest_sub': 'Create an account or sign in to book campus rides, track pedicabs in real-time, and manage your digital pedicab pass.',
       'profile.create_account': 'Create Student / Driver Account',
       'profile.sign_in': 'Sign In to Existing Account',
       'profile.demo_shortcut': 'Demo Shortcut:',
@@ -209,7 +209,7 @@ export class LanguageService {
 
       // Home Tab
       'home.available_pedicabs': 'Mga Available na Pedicab',
-      'home.available_sub': 'Mga pedicab shuttle na handang magsakay ng pasahero',
+      'home.available_sub': 'Mga pedicab pedicab na handang magsakay ng pasahero',
       'home.ready_count': '{count} Handa',
       'home.seats_left': '{count} / {max} Upuan Natitira',
       'home.driver': 'Driver:',
@@ -222,7 +222,7 @@ export class LanguageService {
       'home.track_ride_btn': 'Tingnan ang Live Biyahe at Mapa',
       'home.quick_book_tag': 'Biyaheng Campus',
       'home.quick_book_title': 'Mag-book ng Pedicab sa Campus',
-      'home.quick_book_sub': 'Ligtas at mabilis na shuttle sa loob ng NEUST Sumacab',
+      'home.quick_book_sub': 'Ligtas at mabilis na pedicab sa loob ng NEUST Sumacab',
       'home.where_to_placeholder': 'Saan ka pupunta? (hal. CICT, Gym, Library)',
       'home.active_booking_title': 'Ang Iyong Aktibong Booking',
 
@@ -257,7 +257,7 @@ export class LanguageService {
       'book.nearest_badge': 'Pinakamalapit',
       'book.no_pedicabs': 'Walang Available na Pedicab',
       'book.no_pedicabs_sub': 'Lahat ng pedicab ay bumibiyahe pa o offline.',
-      'book.wait_shuttle': 'Maghintay sa Susunod na Shuttle',
+      'book.wait_shuttle': 'Maghintay sa Susunod na Pedicab',
 
       // Booking Step 4: Trip Notes
       'book.step4': 'Mga Tala sa Biyahe (Opsyonal)',
@@ -316,7 +316,7 @@ export class LanguageService {
       // Profile & Settings
       'profile.title': 'Profile at Settings',
       'profile.guest_title': 'Maligayang pagdating sa NEUST BikeGo',
-      'profile.guest_sub': 'Gumawa ng account o mag-sign in para makapag-book ng rides, ma-track ang pedicabs, at magamit ang digital shuttle pass.',
+      'profile.guest_sub': 'Gumawa ng account o mag-sign in para makapag-book ng rides, ma-track ang pedicabs, at magamit ang digital pedicab pass.',
       'profile.create_account': 'Gumawa ng Account (Estudyante / Driver)',
       'profile.sign_in': 'Mag-sign In sa Dating Account',
       'profile.demo_shortcut': 'Shortcut para sa Demo:',

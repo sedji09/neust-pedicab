@@ -48,8 +48,8 @@ export class BicycleFinderService {
     const results: NearestBicycleResult[] = [];
 
     for (const bike of bicycles) {
-      // Exclude offline and maintenance
-      if (bike.status === 'maintenance' || bike.status === 'offline') {
+      // Exclude offline, maintenance or missing location
+      if (bike.status === 'maintenance' || bike.status === 'offline' || !bike.currentLocation) {
         continue;
       }
 
@@ -63,7 +63,7 @@ export class BicycleFinderService {
       // Campus pedestrian / pathway routing multiplier (typically ~1.2x straight line on campus grid)
       const walkingDistanceMeters = Math.round(straightLineDistanceMeters * 1.2);
 
-      // Estimated arrival in minutes based on shuttle speed + traffic buffer
+      // Estimated arrival in minutes based on pedicab speed + traffic buffer
       const estimatedArrivalMinutes = Math.max(
         1,
         Math.ceil(walkingDistanceMeters / this.AVERAGE_SHUTTLE_SPEED_M_PER_MIN)
@@ -75,7 +75,7 @@ export class BicycleFinderService {
 
       if (remainingSeats <= 0 || bike.status === 'full') {
         isAvailableForTrip = false;
-        ineligibilityReason = 'Shuttle is at full capacity (4/4)';
+        ineligibilityReason = 'Pedicab is at full capacity (4/4)';
       } else if (
         targetDestinationName &&
         bike.currentDestination &&

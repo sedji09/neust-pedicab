@@ -22,7 +22,7 @@ export const INITIAL_CAMPUS_LOCATIONS: CampusLocation[] = [
   {
     id: 'loc-cict',
     code: 'CICT',
-    name: 'College of Information & Communications Tech',
+    name: 'College of Information & Communications Technology',
     buildingNumber: 'Bldg 25',
     category: 'academic',
     coordinates: { x: 64.0, y: 28.0, lat: 15.449353, lng: 120.940410 },
@@ -142,7 +142,7 @@ export const INITIAL_CAMPUS_LOCATIONS: CampusLocation[] = [
   {
     id: 'loc-cmbt',
     code: 'CMBT',
-    name: 'College of Management & Business Tech',
+    name: 'College of Management & Business Technology',
     buildingNumber: 'Bldg 8',
     category: 'academic',
     coordinates: { x: 52.0, y: 65.0, lat: 15.445500, lng: 120.939200 },
@@ -224,31 +224,19 @@ export const INITIAL_BICYCLES: Bicycle[] = [
     passengerCount: 0,
     maxCapacity: 4,
     status: 'available',
-    currentLocation: { x: 75.0, y: 82.0, lat: 15.444889, lng: 120.940417, stationName: 'Main Entrance Gate' },
-    currentDestination: 'College of Information & Communications Tech (CICT)',
-    pickupLocation: 'Main Entrance Gate',
-    heading: 330,
-    speedKmH: 12.5,
-    lastUpdate: 'Just now',
-    batteryPercent: 92
-  },
-  {
-    id: 'bike-002',
-    bikeNumber: 'BIKE-002',
-    driverId: 'driver-002',
-    driverName: 'Antonio Luna',
-    driverPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
-    driverPhone: '0918-555-0102',
-    passengerCount: 0,
-    maxCapacity: 4,
-    status: 'available',
-    currentLocation: { x: 55.0, y: 55.0, lat: 15.446868, lng: 120.939533, stationName: 'College of Architecture' },
-    currentDestination: 'University Library',
-    pickupLocation: 'College of Architecture',
-    heading: 45,
+    currentLocation: {
+      lat: 15.444889,
+      lng: 120.940417,
+      x: 75.0,
+      y: 82.0,
+      stationName: 'NEUST Gate & Trike Bike Terminal'
+    },
+    currentDestination: 'CICT — Building 25',
+    pickupLocation: 'NEUST Gate & Trike Bike Terminal',
+    heading: 335,
     speedKmH: 0,
     lastUpdate: 'Just now',
-    batteryPercent: 88
+    batteryPercent: 100
   },
   {
     id: 'bike-003',
@@ -260,103 +248,43 @@ export const INITIAL_BICYCLES: Bicycle[] = [
     passengerCount: 0,
     maxCapacity: 4,
     status: 'available',
-    currentLocation: { x: 75.0, y: 82.0, lat: 15.444889, lng: 120.940417, stationName: 'Main Entrance Gate' },
-    currentDestination: 'College of Information & Communications Tech (CICT)',
-    pickupLocation: 'Main Entrance Gate',
-    heading: 295,
+    currentLocation: {
+      lat: 15.444889,
+      lng: 120.940417,
+      x: 75.0,
+      y: 82.0,
+      stationName: 'NEUST Gate & Trike Bike Terminal'
+    },
+    currentDestination: 'Available for Campus Trips',
+    pickupLocation: 'NEUST Gate & Trike Bike Terminal',
+    heading: 0,
     speedKmH: 0,
     lastUpdate: 'Just now',
-    batteryPercent: 85
+    batteryPercent: 95
   },
   {
-    id: 'bike-006',
-    bikeNumber: 'BIKE-006',
-    driverId: 'driver-006',
-    driverName: 'Rodrigo Cruz',
-    driverPhoto: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80',
-    driverPhone: '0922-555-0106',
-    passengerCount: 0,
+    id: 'bike-002',
+    bikeNumber: 'BIKE-002',
+    driverId: 'driver-002',
+    driverName: 'Antonio Luna',
+    driverPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    driverPhone: '0918-555-0102',
+    passengerCount: 1,
     maxCapacity: 4,
     status: 'available',
-    currentLocation: { x: 55.0, y: 55.0, lat: 15.446868, lng: 120.939533, stationName: 'College of Architecture' },
-    currentDestination: 'Main Entrance Gate',
-    pickupLocation: 'College of Architecture',
-    heading: 180,
+    currentLocation: {
+      lat: 15.446868,
+      lng: 120.939533,
+      x: 64.0,
+      y: 50.0,
+      stationName: 'College of Architecture Terminal'
+    },
+    currentDestination: 'University Library',
+    pickupLocation: 'College of Architecture Terminal',
+    heading: 25,
     speedKmH: 0,
     lastUpdate: 'Just now',
     batteryPercent: 90
-  },
-  {
-    id: 'bike-007',
-    bikeNumber: 'BIKE-007',
-    driverId: 'driver-007',
-    driverName: 'Carlos Mendoza',
-    driverPhoto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80',
-    driverPhone: '0923-555-0107',
-    passengerCount: 3,
-    maxCapacity: 4,
-    status: 'almost_full',
-    currentLocation: { x: 50.0, y: 65.0, lat: 15.4455, lng: 120.9388, stationName: 'Student Canteen' },
-    currentDestination: 'College of Engineering',
-    pickupLocation: 'Student Canteen',
-    heading: 90,
-    speedKmH: 8.5,
-    lastUpdate: '2 mins ago',
-    batteryPercent: 72
-  },
-  {
-    id: 'bike-004',
-    bikeNumber: 'BIKE-004',
-    driverId: 'driver-004',
-    driverName: 'Danilo Ramos',
-    driverPhoto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=200&q=80',
-    driverPhone: '0920-555-0104',
-    passengerCount: 4,
-    maxCapacity: 4,
-    status: 'on_trip',
-    currentLocation: { x: 67.0, y: 36.0, lat: 15.4478, lng: 120.9408, stationName: 'Bumabyahe (Malunggay Ave)' },
-    currentDestination: 'Main Entrance Gate',
-    pickupLocation: 'College of Engineering',
-    heading: 160,
-    speedKmH: 13.8,
-    lastUpdate: 'Just now',
-    batteryPercent: 84
-  },
-  {
-    id: 'bike-008',
-    bikeNumber: 'BIKE-008',
-    driverId: 'driver-008',
-    driverName: 'Ramon Magsaysay',
-    driverPhoto: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80',
-    driverPhone: '0924-555-0108',
-    passengerCount: 1,
-    maxCapacity: 4,
-    status: 'on_trip',
-    currentLocation: { x: 62.0, y: 42.0, lat: 15.44795, lng: 120.93965, stationName: 'Nagroronda (Narra Ave / CICT)' },
-    currentDestination: 'CICT & Gymnasium Loop',
-    pickupLocation: 'Main Entrance Gate',
-    heading: 35,
-    speedKmH: 11.2,
-    lastUpdate: 'Just now',
-    batteryPercent: 91
-  },
-  {
-    id: 'bike-005',
-    bikeNumber: 'BIKE-005',
-    driverId: 'driver-005',
-    driverName: 'Mateo De Silva',
-    driverPhoto: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80',
-    driverPhone: '0921-555-0105',
-    passengerCount: 0,
-    maxCapacity: 4,
-    status: 'maintenance',
-    currentLocation: { x: 56.0, y: 78.0, lat: 15.4445, lng: 120.9392, stationName: 'Maintenance Bay (Hostel)' },
-    currentDestination: 'None (Under Repair)',
-    pickupLocation: 'None',
-    heading: 0,
-    speedKmH: 0,
-    lastUpdate: '15 mins ago',
-    batteryPercent: 40
   }
 ];
 
@@ -369,7 +297,7 @@ export const INITIAL_DEMO_USERS: User[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
     phone: '0927-123-4567',
     idNumber: '2023-01042',
-    department: 'College of Information & Communications Tech (CICT)',
+    department: 'College of Information & Communications Technology (CICT)',
     accountStatus: 'active',
     password: 'password123',
     createdAt: '2026-01-15T08:00:00.000Z'
@@ -432,160 +360,11 @@ export const INITIAL_DEMO_USERS: User[] = [
   }
 ];
 
-export const INITIAL_QUEUES: QueueEntry[] = [
-  {
-    id: 'q-001',
-    queueNumber: 'Q-005',
-    studentId: 'student-demo-1',
-    studentName: 'Clara Cortez',
-    studentPhoto: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
-    studentIdNumber: '2023-08819',
-    pickupLocationId: 'loc-gate',
-    pickupLocationName: 'Main Entrance Gate',
-    destinationId: 'loc-cict',
-    destinationName: 'College of Information & Communications Tech (CICT)',
-    status: 'called',
-    position: 1,
-    estimatedWaitMinutes: 1,
-    createdAt: new Date(Date.now() - 6 * 60000).toISOString(),
-    calledAt: new Date(Date.now() - 1 * 60000).toISOString(),
-    assignedBikeNumber: 'BIKE-003',
-    assignedDriverName: 'Juan Dela Cruz'
-  },
-  {
-    id: 'q-002',
-    queueNumber: 'Q-006',
-    studentId: 'student-demo-2',
-    studentName: 'Ramon Garcia',
-    studentPhoto: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80',
-    studentIdNumber: '2022-03120',
-    pickupLocationId: 'loc-gate',
-    pickupLocationName: 'Main Entrance Gate',
-    destinationId: 'loc-cict',
-    destinationName: 'College of Information & Communications Tech (CICT)',
-    status: 'waiting',
-    position: 2,
-    estimatedWaitMinutes: 4,
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString()
-  },
-  {
-    id: 'q-003',
-    queueNumber: 'Q-007',
-    studentId: 'student-demo-3',
-    studentName: 'Bea Alonzo',
-    studentPhoto: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
-    studentIdNumber: '2024-00192',
-    pickupLocationId: 'loc-gate',
-    pickupLocationName: 'Main Entrance Gate',
-    destinationId: 'loc-eng',
-    destinationName: 'College of Engineering',
-    status: 'waiting',
-    position: 3,
-    estimatedWaitMinutes: 7,
-    createdAt: new Date(Date.now() - 3 * 60000).toISOString()
-  }
-];
+export const INITIAL_QUEUES: QueueEntry[] = [];
 
-export const INITIAL_TRIPS: Trip[] = [
-  {
-    id: 'trip-101',
-    tripNumber: 'TRIP-101',
-    bicycleId: 'bike-003',
-    bicycleNumber: 'BIKE-003',
-    driverId: 'driver-003',
-    driverName: 'Juan Dela Cruz',
-    driverPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-    pickupLocation: 'Main Entrance Gate',
-    destination: 'College of Information & Communications Tech (CICT)',
-    passengerCount: 2,
-    maxCapacity: 4,
-    status: 'active',
-    startTime: new Date(Date.now() - 8 * 60000).toISOString(),
-    passengers: [
-      {
-        studentId: 'student-demo-4',
-        studentName: 'Joshua Aquino',
-        queueNumber: 'Q-003',
-        destination: 'College of Information & Communications Tech (CICT)',
-        boardedAt: new Date(Date.now() - 7 * 60000).toISOString()
-      },
-      {
-        studentId: 'student-demo-5',
-        studentName: 'Liza Soberano',
-        queueNumber: 'Q-004',
-        destination: 'College of Information & Communications Tech (CICT)',
-        boardedAt: new Date(Date.now() - 6 * 60000).toISOString()
-      }
-    ]
-  },
-  {
-    id: 'trip-100',
-    tripNumber: 'TRIP-100',
-    bicycleId: 'bike-003',
-    bicycleNumber: 'BIKE-003',
-    driverId: 'driver-003',
-    driverName: 'Juan Dela Cruz',
-    driverPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
-    pickupLocation: 'NEUST Administration Building',
-    destination: 'Main Entrance Gate',
-    passengerCount: 4,
-    maxCapacity: 4,
-    status: 'completed',
-    startTime: new Date(Date.now() - 45 * 60000).toISOString(),
-    endTime: new Date(Date.now() - 32 * 60000).toISOString(),
-    distanceMeters: 650,
-    passengers: []
-  },
-  {
-    id: 'trip-099',
-    tripNumber: 'TRIP-099',
-    bicycleId: 'bike-001',
-    bicycleNumber: 'BIKE-001',
-    driverId: 'driver-001',
-    driverName: 'Pedro Ramirez',
-    driverPhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-    pickupLocation: 'Main Entrance Gate',
-    destination: 'University Library',
-    passengerCount: 3,
-    maxCapacity: 4,
-    status: 'completed',
-    startTime: new Date(Date.now() - 75 * 60000).toISOString(),
-    endTime: new Date(Date.now() - 60 * 60000).toISOString(),
-    distanceMeters: 520,
-    passengers: []
-  }
-];
+export const INITIAL_TRIPS: Trip[] = [];
 
-export const INITIAL_MAINTENANCE_REPORTS: MaintenanceReport[] = [
-  {
-    id: 'mnt-001',
-    reportNumber: 'MNT-041',
-    bicycleId: 'bike-005',
-    bicycleNumber: 'BIKE-005',
-    driverId: 'driver-005',
-    driverName: 'Mateo De Silva',
-    issueType: 'Flat Tire',
-    description: 'Rear tire puncture occurred near the University Plaza pathway. Requires inner tube replacement.',
-    photoUrl: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80',
-    status: 'under_maintenance',
-    reportedAt: new Date(Date.now() - 120 * 60000).toISOString(),
-    adminNotes: 'Work order dispatched to campus mechanical crew.'
-  },
-  {
-    id: 'mnt-002',
-    reportNumber: 'MNT-040',
-    bicycleId: 'bike-002',
-    bicycleNumber: 'BIKE-002',
-    driverId: 'driver-002',
-    driverName: 'Antonio Luna',
-    issueType: 'Brake Problem',
-    description: 'Front caliper brake feels loose on downhill slope heading to Grandstand. Adjusted cable tension.',
-    status: 'resolved',
-    reportedAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-    resolvedAt: new Date(Date.now() - 20 * 3600000).toISOString(),
-    adminNotes: 'Caliper pads inspected and tightened. Test ride passed.'
-  }
-];
+export const INITIAL_MAINTENANCE_REPORTS: MaintenanceReport[] = [];
 
 export const INITIAL_ANNOUNCEMENTS: ServiceAnnouncement[] = [
   {
@@ -600,7 +379,7 @@ export const INITIAL_ANNOUNCEMENTS: ServiceAnnouncement[] = [
   },
   {
     id: 'anc-002',
-    title: 'Designated Shuttle Pickup Points',
+    title: 'Designated Pedicab Pickup Points',
     content: 'Please wait at designated BikeGo stations marked with official campus signage. Maximum passenger limit is strictly 4 passengers per bicycle.',
     type: 'info',
     targetAudience: 'students',

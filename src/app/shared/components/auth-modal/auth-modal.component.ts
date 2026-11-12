@@ -51,12 +51,12 @@ import { SocialLogin } from '@capgo/capacitor-social-login';
           <!-- Modal Top Bar -->
           <div class="auth-top-bar">
             <div class="auth-brand-snippet">
-              <div class="auth-logo-circle">
-                <ion-icon name="bicycle-outline"></ion-icon>
+              <div style="height: 40px; width: auto; flex-shrink: 0; display: flex; align-items: center;">
+                <img src="assets/images/BikeGO_logo.png" alt="NEUST BikeGo" style="height: 100%; width: auto; object-fit: contain; display: block;" />
               </div>
               <div>
                 <h3 class="auth-app-title">NEUST <span>BikeGo</span></h3>
-                <p class="auth-app-sub">Campus Shuttle & Passenger Portal</p>
+                <p class="auth-app-sub">Campus Pedicab & Passenger Portal</p>
               </div>
             </div>
             <button class="auth-x-btn" (click)="closeModal()">
@@ -140,26 +140,6 @@ import { SocialLogin } from '@capgo/capacitor-social-login';
                 <ion-icon name="arrow-forward-outline"></ion-icon>
               </button>
             </form>
-
-            <!-- Quick Demo One-Click Access -->
-            <div class="auth-divider">
-              <span>Or Quick Demo Login</span>
-            </div>
-
-            <div class="demo-quick-grid">
-              <button class="demo-pill-btn" (click)="quickDemoLogin('student')">
-                <span class="demo-dot dot-student"></span>
-                <span>Student Maria</span>
-              </button>
-              <button class="demo-pill-btn" (click)="quickDemoLogin('driver')">
-                <span class="demo-dot dot-driver"></span>
-                <span>Driver Pedro</span>
-              </button>
-              <button class="demo-pill-btn" (click)="quickDemoLogin('admin')">
-                <span class="demo-dot dot-admin"></span>
-                <span>Admin Bautista</span>
-              </button>
-            </div>
           </div>
 
           <!-- ==================== TAB 2: CREATE ACCOUNT ==================== -->
@@ -252,15 +232,15 @@ import { SocialLogin } from '@capgo/capacitor-social-login';
                 </div>
               </div>
 
-              <!-- College / Department -->
-              <div class="form-group">
+              <!-- College / Department (Students Only) -->
+              <div class="form-group" *ngIf="regRole === 'student'">
                 <label>College / Department</label>
                 <div class="input-field-box">
                   <ion-icon name="school-outline"></ion-icon>
                   <select [(ngModel)]="regDepartment" name="regDepartment" class="native-select">
-                    <option value="College of Information & Communications Tech (CICT)">CICT — Information Technology</option>
+                    <option value="College of Information & Communications Technology (CICT)">CICT — Information Technology</option>
                     <option value="College of Engineering">COE — College of Engineering</option>
-                    <option value="College of Management & Business Tech (CMBT)">CMBT — Management & Business</option>
+                    <option value="College of Management & Business Technology (CMBT)">CMBT — Management & Business</option>
                     <option value="College of Education">COED — College of Education</option>
                     <option value="College of Nursing & Allied Health">CON — Nursing & Allied Health</option>
                     <option value="University Logistics & Fleet Operations">Campus Logistics & Transportation</option>
@@ -271,7 +251,7 @@ import { SocialLogin } from '@capgo/capacitor-social-login';
 
               <!-- Assigned Bicycle (If Driver) -->
               <div class="form-group" *ngIf="regRole === 'driver'">
-                <label>Assigned Shuttle Bicycle Number</label>
+                <label>Assigned Pedicab Number</label>
                 <div class="input-field-box">
                   <ion-icon name="bicycle-outline"></ion-icon>
                   <input 
@@ -751,7 +731,7 @@ export class AuthModalComponent {
   public regIdNumber = '';
   public regEmail = '';
   public regPhone = '';
-  public regDepartment = 'College of Information & Communications Tech (CICT)';
+  public regDepartment = 'College of Information & Communications Technology (CICT)';
   public regAssignedBike = '';
   public regPassword = '';
   public regConfirmPassword = '';
@@ -803,9 +783,7 @@ export class AuthModalComponent {
       });
       const response = await SocialLogin.login({
         provider: 'google',
-        options: {
-          scopes: ['email', 'profile']
-        }
+        options: {}
       });
       let email = 'student.google@neust.edu.ph';
       let name = '';
@@ -852,8 +830,12 @@ export class AuthModalComponent {
       });
     } catch (e: any) {
       console.warn('Native Google Sign-In error:', e);
+      const detail = e?.message ? ` (${e.message})` : '';
+      const isFil = localStorage.getItem('neust_bikego_language') === 'fil';
       this.ngZone.run(() => {
-        this.errorBanner = 'Hindi natuloy ang Google Sign-In o kinansela.';
+        this.errorBanner = isFil
+          ? `Hindi natuloy ang Google Sign-In o kinansela.${detail}`
+          : `Google Sign-In was cancelled or failed.${detail}`;
         this.cdr.detectChanges();
       });
     }
@@ -935,11 +917,5 @@ export class AuthModalComponent {
     } else {
       this.errorBanner = res.message;
     }
-  }
-
-  public quickDemoLogin(role: UserRole): void {
-    const user = this.authService.loginAsDemo(role);
-    this.toastMsg = `Logged in as ${user.fullName} (${role.toUpperCase()}).`;
-    this.showToast = true;
   }
 }

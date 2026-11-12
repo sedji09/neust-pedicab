@@ -185,7 +185,8 @@
         [showHeatmap]="showHeatmap"
         [heatPoints]="demandHeatPoints"
         [showHeaderControls]="true"
-        [compactHeight]="false">
+        [compactHeight]="false"
+        [allowBooking]="false">
       </app-campus-map>
     </div>
 
@@ -216,7 +217,7 @@
     <div class="section-header-action">
       <div class="page-title-group">
         <h2>Fleet Management</h2>
-        <p>Register new shuttles, assign drivers, and check capacities.</p>
+        <p>Register new pedicabs, assign drivers, and check capacities.</p>
       </div>
       <button class="btn-primary-add" (click)="isNewBikeModalOpen = true">
         <ion-icon name="add-outline"></ion-icon> Register Bicycle
@@ -397,7 +398,7 @@
           </div>
           <div class="zc-meta-item">
             <span class="lbl">Capacity</span>
-            <strong>{{ zone.capacity || 4 }} shuttles</strong>
+            <strong>{{ zone.capacity || 4 }} pedicabs</strong>
           </div>
         </div>
       </div>
@@ -446,7 +447,7 @@
     <div class="section-header-action">
       <div class="page-title-group">
         <h2>Campus Location & Station Management</h2>
-        <p>Suriin at aprubahan ang mga GPS coordinates na naitala ng mga rider, at pamahalaan ang direktoryo ng mga gusali sa NEUST Sumacab.</p>
+        <p>Review and approve GPS coordinates submitted by riders, and manage the NEUST Sumacab building directory.</p>
       </div>
       <button class="btn-primary-add" (click)="openDirectRegisterModal()">
         <ion-icon name="add-outline"></ion-icon> Register New Location
@@ -508,10 +509,6 @@
           <p class="apc-desc" *ngIf="loc.description">{{ loc.description }}</p>
 
           <div class="apc-details-grid">
-            <div class="apc-detail-item">
-              <span class="apc-d-lbl">GPS Coordinates:</span>
-              <strong>{{ loc.coordinates.lat }}, {{ loc.coordinates.lng }}</strong>
-            </div>
             <div class="apc-detail-item" *ngIf="loc.gpsAccuracy">
               <span class="apc-d-lbl">Device Accuracy:</span>
               <strong class="text-emerald">±{{ loc.gpsAccuracy }}m</strong>
@@ -547,8 +544,8 @@
       <ng-template #noPendingLocs>
         <div class="admin-empty-box">
           <ion-icon name="checkmark-circle-outline" class="icon-big-green"></ion-icon>
-          <h4>Walang Pending Proposals</h4>
-          <p>Lahat ng mga naitalang lokasyon ng mga rider ay nasuri at naaprubahan na.</p>
+          <h4>No Pending Proposals</h4>
+          <p>All rider-submitted locations have been reviewed and approved.</p>
         </div>
       </ng-template>
     </div>
@@ -561,6 +558,7 @@
           <ion-icon name="search-outline"></ion-icon>
           <input
             type="text"
+            class="admin-search-input"
             placeholder="Hanapin ang gusali o code (hal. CICT, Library, Gym)..."
             [(ngModel)]="locationSearchQuery" />
         </div>
@@ -582,9 +580,11 @@
         <div *ngFor="let loc of filteredAdminLocations" class="loc-manage-card">
           <div class="loc-m-top">
             <div class="loc-m-code-box">
-              <span class="loc-m-cat-tag">{{ loc.category | uppercase }}</span>
+              <div class="loc-m-badges-row">
+                <span class="loc-m-cat-tag">{{ loc.category | uppercase }}</span>
+                <span class="loc-m-num" *ngIf="loc.buildingNumber">{{ loc.buildingNumber }}</span>
+              </div>
               <strong class="loc-m-name">{{ loc.name }}</strong>
-              <span class="loc-m-num" *ngIf="loc.buildingNumber">{{ loc.buildingNumber }}</span>
             </div>
             <div class="loc-m-right-actions">
               <button type="button" class="btn-loc-edit" (click)="openReviewModal(loc)" title="Edit Coordinates">
@@ -601,7 +601,7 @@
           <div class="loc-m-footer">
             <div class="loc-gps-text">
               <ion-icon name="location-outline"></ion-icon>
-              <span>Lat: {{ loc.coordinates.lat }} • Lng: {{ loc.coordinates.lng }}</span>
+              <span>{{ loc.buildingNumber || 'NEUST Campus' }}</span>
             </div>
             <div class="loc-toggles-inline">
               <label class="toggle-lbl">
@@ -616,7 +616,7 @@
   </div>
 
   <!-- ==================== ADMIN REVIEW & ADJUST PIN MODAL (Feature 3 & 5) ==================== -->
-  <ion-modal [isOpen]="isReviewLocModalOpen" (didDismiss)="isReviewLocModalOpen = false" [initialBreakpoint]="0.92" [breakpoints]="[0, 0.92]">
+  <ion-modal [isOpen]="isReviewLocModalOpen" (didDismiss)="isReviewLocModalOpen = false" class="admin-review-sheet-modal">
     <ng-template>
       <div class="admin-review-modal-container" *ngIf="selectedLocForReview as rloc">
         <div class="arm-header">
@@ -653,8 +653,8 @@
           <!-- Interactive Map to Adjust Pin -->
           <div class="arm-map-section">
             <div class="ams-head">
-              <strong>I-adjust ang Map Pin kung kinakailangan:</strong>
-              <span>I-drag ang pin sa eksaktong entrance o kalsada</span>
+              <strong>Adjust Map Pin if Needed</strong>
+              <span>Drag the pin to the exact entrance or road</span>
             </div>
             <div class="ams-map-box">
               <app-campus-map
@@ -673,8 +673,8 @@
 
           <!-- Separate Stopping Point Input (Feature 5) -->
           <div class="arm-stopping-box">
-            <h4>Separate Stopping Point (Kalsada)</h4>
-            <p>Kung ang gusali ay malayo sa kalsada, itakda ang pickup/dropoff stopping coordinates:</p>
+            <h4>Separate Stopping Point (Roadside)</h4>
+            <p>If the building is far from the road, set the pickup/dropoff stopping coordinates:</p>
             <div class="asb-inputs-row">
               <div class="asb-field">
                 <label>Stopping Lat</label>
@@ -685,18 +685,19 @@
                 <input type="number" step="0.000001" [(ngModel)]="reviewAdjustedPickupLng" />
               </div>
               <button type="button" class="btn-use-pin-stop" (click)="reviewAdjustedPickupLat = reviewAdjustedLat; reviewAdjustedPickupLng = reviewAdjustedLng">
-                Use Current Pin
+                <ion-icon name="pin-outline"></ion-icon>
+                <span>Use Current Pin</span>
               </button>
             </div>
           </div>
 
           <!-- Rejection Reason Input (Only needed if rejecting) -->
           <div class="arm-reject-box">
-            <label>Dahilan ng Rejection (kung tatanggihan):</label>
+            <label>Rejection Reason (if rejecting):</label>
             <input
               type="text"
               class="input-reject-reason"
-              placeholder="Hal. Nasa labas ng kalsada, duplicate location, mali ang pangalan"
+              placeholder="e.g. Off-road location, duplicate entry, wrong name"
               [(ngModel)]="reviewRejectionReason" />
           </div>
         </div>
@@ -704,11 +705,11 @@
         <div class="arm-footer-actions">
           <button type="button" class="btn-arm-reject" (click)="rejectSelectedLocation()">
             <ion-icon name="close-circle-outline"></ion-icon>
-            <span>Tanggihan (Reject)</span>
+            <span>Reject</span>
           </button>
           <button type="button" class="btn-arm-approve" (click)="approveSelectedLocation()">
             <ion-icon name="checkmark-circle-outline"></ion-icon>
-            <span>Aprubahan (Approve)</span>
+            <span>Approve</span>
           </button>
         </div>
       </div>
@@ -782,14 +783,14 @@
             <div class="amm-map-frame">
               <div class="amm-map-hint-bar">
                 <ion-icon name="map-outline"></ion-icon>
-                <span>I-click o i-drag ang pin sa eksaktong entrance ng gusali o kalsada</span>
+                <span>Click on the map or drag the pin to mark the exact building or roadside spot</span>
               </div>
               <div class="amm-map-box">
                 <app-campus-map
                   *ngIf="isDirectRegisterModalOpen"
                   [defaultMode]="'leaflet'"
-                  [compactHeight]="false"
-                  [showHeaderControls]="true"
+                  [compactHeight]="true"
+                  [showHeaderControls]="false"
                   [customPickupPin]="adminMappingPinPreview"
                   [enableCustomPickupPin]="true"
                   (pickupPinChanged)="onDirectRegisterPinChanged($event)"
@@ -981,89 +982,99 @@
 
   <!-- ==================== BOTTOM NAVIGATION (MOBILE) ==================== -->
   <div class="bottom-nav-bar">
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'overview'" (click)="currentTab = 'overview'">
-      <ion-icon name="shield-checkmark-outline"></ion-icon>
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'overview'" (click)="currentTab = 'overview'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+      </div>
       <span>Overview</span>
     </button>
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'locations'" (click)="currentTab = 'locations'">
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'locations'" (click)="currentTab = 'locations'">
       <div class="nav-icon-badge-box">
         <ion-icon name="map-outline"></ion-icon>
         <span class="badge-dot-indicator" *ngIf="pendingLocations.length > 0">{{ pendingLocations.length }}</span>
       </div>
       <span>Locations</span>
     </button>
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'bicycles'" (click)="currentTab = 'bicycles'">
-      <ion-icon name="bicycle-outline"></ion-icon>
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'bicycles'" (click)="currentTab = 'bicycles'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="bicycle-outline"></ion-icon>
+      </div>
       <span>Fleet</span>
     </button>
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'trips'" (click)="currentTab = 'trips'">
-      <ion-icon name="navigate-outline"></ion-icon>
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'trips'" (click)="currentTab = 'trips'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="navigate-outline"></ion-icon>
+      </div>
       <span>Trips</span>
     </button>
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'demand'" (click)="currentTab = 'demand'">
-      <ion-icon name="bar-chart-outline"></ion-icon>
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'demand'" (click)="currentTab = 'demand'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="bar-chart-outline"></ion-icon>
+      </div>
       <span>Demand</span>
     </button>
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'maintenance'" (click)="currentTab = 'maintenance'">
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'maintenance'" (click)="currentTab = 'maintenance'">
       <div class="nav-icon-badge-box">
         <ion-icon name="build-outline"></ion-icon>
         <span class="badge-dot-indicator" *ngIf="maintenanceBicycles > 0"></span>
       </div>
       <span>Repairs</span>
     </button>
-    <button class="bottom-nav-btn" [class.is-active]="currentTab === 'announcements'" (click)="currentTab = 'announcements'">
-      <ion-icon name="megaphone-outline"></ion-icon>
+    <button type="button" class="bottom-nav-btn" [class.is-active]="currentTab === 'announcements'" (click)="currentTab = 'announcements'">
+      <div class="nav-icon-badge-box">
+        <ion-icon name="megaphone-outline"></ion-icon>
+      </div>
       <span>Notices</span>
     </button>
   </div>
 
   <!-- REGISTER BICYCLE MODAL -->
-  <ion-modal [isOpen]="isNewBikeModalOpen" (didDismiss)="isNewBikeModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+  <ion-modal [isOpen]="isNewBikeModalOpen" (didDismiss)="isNewBikeModalOpen = false" class="admin-form-modal">
     <ng-template>
       <div class="qr-modal-container">
         <div class="qr-modal-header">
           <h3>Register New Bicycle</h3>
-          <button class="modal-x-btn" (click)="isNewBikeModalOpen = false">
+          <button type="button" class="modal-x-btn" (click)="isNewBikeModalOpen = false">
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
 
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Bicycle Number (e.g. BIKE-006)</label>
           <input type="text" [(ngModel)]="newBikeNumber" placeholder="BIKE-006" class="form-text-input" />
         </div>
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Assigned Operator Name</label>
           <input type="text" [(ngModel)]="newDriverName" placeholder="Driver Name" class="form-text-input" />
         </div>
-        <div class="form-field" style="text-align: left;">
+        <div class="form-field">
           <label>Passenger Capacity</label>
           <input type="number" [(ngModel)]="newMaxCapacity" value="4" class="form-text-input" />
         </div>
-        <button class="btn-primary-add" style="margin-top: 20px; width: 100%; justify-content: center; padding: 12px;" (click)="submitNewBicycle()">
-          Register Bicycle to Fleet
+        <button type="button" class="modal-submit-btn" (click)="submitNewBicycle()">
+          <ion-icon name="bicycle-outline"></ion-icon> Register Bicycle to Fleet
         </button>
       </div>
     </ng-template>
   </ion-modal>
 
   <!-- REVIEW MAINTENANCE MODAL -->
-  <ion-modal [isOpen]="isReviewMaintenanceModalOpen" (didDismiss)="isReviewMaintenanceModalOpen = false" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]">
+  <ion-modal [isOpen]="isReviewMaintenanceModalOpen" (didDismiss)="isReviewMaintenanceModalOpen = false" class="admin-form-modal">
     <ng-template>
       <div class="qr-modal-container" *ngIf="selectedReport">
         <div class="qr-modal-header">
           <h3>Maintenance Review: {{ selectedReport.reportNumber }}</h3>
-          <button class="modal-x-btn" (click)="isReviewMaintenanceModalOpen = false">
+          <button type="button" class="modal-x-btn" (click)="isReviewMaintenanceModalOpen = false">
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
 
-        <div class="maint-review-box" style="text-align: left;">
-          <span style="font-size: 11px; font-weight: 800; color: #2563eb;">{{ selectedReport.bicycleNumber }}</span>
-          <h3 style="margin: 4px 0; font-size: 16px; font-weight: 800; color: #1d3698;">{{ selectedReport.issueType }}</h3>
-          <p style="font-size: 12px; color: #475569;">{{ selectedReport.description }}</p>
+        <div class="maint-review-box">
+          <span class="maint-bike-tag">{{ selectedReport.bicycleNumber }}</span>
+          <h4 class="maint-issue-title">{{ selectedReport.issueType }}</h4>
+          <p class="maint-issue-desc">{{ selectedReport.description }}</p>
 
-          <div class="form-field" style="margin-top: 14px;">
+          <div class="form-field maint-notes-field">
             <label>Admin Resolution Notes</label>
             <textarea 
               [(ngModel)]="adminResolutionNotes" 
@@ -1073,8 +1084,8 @@
             </textarea>
           </div>
 
-          <button class="btn-primary-add" style="margin-top: 16px; width: 100%; background: #16a34a; justify-content: center; padding: 12px;" (click)="resolveReport()">
-            <ion-icon name="checkmark-circle-outline"></ion-icon> Mark Resolved & Restore Shuttle
+          <button type="button" class="modal-submit-btn modal-submit-btn--success" (click)="resolveReport()">
+            <ion-icon name="checkmark-circle-outline"></ion-icon> Mark Resolved & Restore Pedicab
           </button>
         </div>
       </div>
@@ -1082,48 +1093,48 @@
   </ion-modal>
 
   <!-- PUBLISH ANNOUNCEMENT MODAL -->
-  <ion-modal [isOpen]="isNewAnnouncementModalOpen" (didDismiss)="isNewAnnouncementModalOpen = false" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6]">
+  <ion-modal [isOpen]="isNewAnnouncementModalOpen" (didDismiss)="isNewAnnouncementModalOpen = false" class="admin-form-modal">
     <ng-template>
       <div class="qr-modal-container">
         <div class="qr-modal-header">
           <h3>Broadcast Announcement</h3>
-          <button class="modal-x-btn" (click)="isNewAnnouncementModalOpen = false">
+          <button type="button" class="modal-x-btn" (click)="isNewAnnouncementModalOpen = false">
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
 
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Announcement Title</label>
           <input type="text" [(ngModel)]="newAncTitle" placeholder="e.g. Weather Advisory / Peak Hours" class="form-text-input" />
         </div>
-        <div class="form-field" style="text-align: left;">
+        <div class="form-field">
           <label>Notice Content</label>
           <textarea [(ngModel)]="newAncContent" rows="3" placeholder="Enter message details..." class="form-text-input"></textarea>
         </div>
-        <button class="btn-primary-add" style="margin-top: 20px; width: 100%; justify-content: center; padding: 12px;" (click)="submitAnnouncement()">
-          Broadcast to Campus
+        <button type="button" class="modal-submit-btn" (click)="submitAnnouncement()">
+          <ion-icon name="megaphone-outline"></ion-icon> Broadcast to Campus
         </button>
       </div>
     </ng-template>
   </ion-modal>
 
   <!-- ADD DESIGNATED ZONE MODAL (Feature 3) -->
-  <ion-modal [isOpen]="isNewZoneModalOpen" (didDismiss)="isNewZoneModalOpen = false" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75]">
+  <ion-modal [isOpen]="isNewZoneModalOpen" (didDismiss)="isNewZoneModalOpen = false" class="admin-form-modal">
     <ng-template>
       <div class="qr-modal-container">
         <div class="qr-modal-header">
           <h3>Add Designated Campus Zone</h3>
-          <button class="modal-x-btn" (click)="isNewZoneModalOpen = false">
+          <button type="button" class="modal-x-btn" (click)="isNewZoneModalOpen = false">
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
 
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Zone Name (e.g. CICT East Terminal)</label>
           <input type="text" [(ngModel)]="newZoneName" placeholder="Zone Name" class="form-text-input" />
         </div>
 
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Zone Type</label>
           <select [(ngModel)]="newZoneType" class="form-text-input">
             <option value="pickup">Pickup Bay Only</option>
@@ -1133,18 +1144,18 @@
           </select>
         </div>
 
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Radius (Meters)</label>
           <input type="number" [(ngModel)]="newZoneRadiusMeters" value="40" class="form-text-input" />
         </div>
 
-        <div class="form-field" style="text-align: left; margin-bottom: 12px;">
+        <div class="form-field">
           <label>Description</label>
           <input type="text" [(ngModel)]="newZoneDescription" placeholder="e.g. Designated student pickup area" class="form-text-input" />
         </div>
 
-        <button class="btn-primary-add" style="margin-top: 16px; width: 100%; justify-content: center; padding: 12px;" (click)="submitNewZone()">
-          Save Designated Zone
+        <button type="button" class="modal-submit-btn" (click)="submitNewZone()">
+          <ion-icon name="shield-checkmark-outline"></ion-icon> Save Designated Zone
         </button>
       </div>
     </ng-template>

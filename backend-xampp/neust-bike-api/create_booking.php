@@ -34,15 +34,18 @@ if (empty($studentUid) || empty($pickupName) || empty($destinationName)) {
     exit();
 }
 
-// Check for conflicting active booking for this student
-$stmt = $pdo->prepare("SELECT booking_uid, status FROM bookings WHERE student_uid = ? AND status IN ('searching', 'accepted', 'driver_arriving', 'driver_arrived', 'in_progress') LIMIT 1");
+// If student had a previous booking still in 'searching' status, cancel it so new booking broadcasts cleanly
+$pdo->prepare("UPDATE bookings SET status = 'cancelled' WHERE student_uid = ? AND status = 'searching'")->execute([$studentUid]);
+
+// Check for conflicting active in-progress trip for this student (within the last 30 minutes)
+$stmt = $pdo->prepare("SELECT booking_uid, status FROM bookings WHERE student_uid = ? AND status IN ('accepted', 'driver_arriving', 'driver_arrived', 'in_progress') AND created_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE) LIMIT 1");
 $stmt->execute([$studentUid]);
 $existing = $stmt->fetch();
 
 if ($existing) {
     echo json_encode([
         'success' => false,
-        'message' => 'You already have an active booking (' . $existing['booking_uid'] . ') in status: ' . $existing['status'],
+        'message' => 'You already have an active ride (' . $existing['booking_uid'] . ') in status: ' . $existing['status'],
         'existingBookingUid' => $existing['booking_uid']
     ]);
     exit();
@@ -52,17 +55,9 @@ if ($existing) {
 $bookingUid = 'bk-' . bin2hex(random_bytes(6));
 $bookingNumber = 'BK-' . date('Ymd') . '-' . rand(100, 999);
 
-// Find nearest available & online driver
-$driverStmt = $pdo->prepare("SELECT user_uid, full_name, phone, assigned_bicycle_number FROM users WHERE role = 'driver' AND account_status = 'active' LIMIT 10");
-$driverStmt->execute();
-$drivers = $driverStmt->fetchAll();
-
+// Broadcast to ALL online drivers whose pedicab has >= $passengerCount available seats (Paunahan / First-Come-First-Served)
 $targetDriverId = null;
-if (!empty($drivers)) {
-    $targetDriverId = $drivers[0]['user_uid'];
-}
-
-$requestExpiresAt = (time() + 25) * 1000; // 25 seconds in milliseconds
+$requestExpiresAt = (time() + 90) * 1000; // 90 seconds in milliseconds
 
 $insertStmt = $pdo->prepare("
     INSERT INTO bookings (

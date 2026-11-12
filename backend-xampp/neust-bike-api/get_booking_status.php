@@ -8,18 +8,21 @@ require_once __DIR__ . '/db_connect.php';
 $bookingUid = $_GET['id'] ?? null;
 $studentUid = $_GET['studentId'] ?? null;
 
+$b = null;
 if ($bookingUid) {
     $stmt = $pdo->prepare("SELECT * FROM bookings WHERE booking_uid = ? LIMIT 1");
     $stmt->execute([$bookingUid]);
-} elseif ($studentUid) {
+    $b = $stmt->fetch();
+}
+if (!$b && $studentUid) {
     $stmt = $pdo->prepare("SELECT * FROM bookings WHERE student_uid = ? AND status NOT IN ('completed', 'cancelled') ORDER BY id DESC LIMIT 1");
     $stmt->execute([$studentUid]);
-} else {
+    $b = $stmt->fetch();
+}
+if (!$bookingUid && !$studentUid) {
     echo json_encode(['success' => false, 'message' => 'Provide booking id or studentId.']);
     exit();
 }
-
-$b = $stmt->fetch();
 if (!$b) {
     echo json_encode(['success' => false, 'message' => 'No active booking found.']);
     exit();
@@ -34,6 +37,7 @@ echo json_encode([
         'studentName' => $b['student_name'],
         'studentPhone' => $b['student_phone'],
         'studentIdNumber' => $b['student_id_number'],
+        'passengerCount' => max(1, min(4, intval(round(($b['fare_amount'] ?? 10) / 10)))),
         'pickupName' => $b['pickup_name'],
         'pickupLat' => floatval($b['pickup_lat']),
         'pickupLng' => floatval($b['pickup_lng']),

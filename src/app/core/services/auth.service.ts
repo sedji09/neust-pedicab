@@ -59,6 +59,43 @@ export class AuthService {
   constructor(private apiService: ApiService) {
     this.initUserDatabase();
     this.loadSessionFromStorage();
+    this.syncUsersFromXampp();
+
+    // Periodically pull newly registered accounts from XAMPP MySQL
+    setInterval(() => {
+      this.syncUsersFromXampp();
+    }, 5000);
+  }
+
+  public syncUsersFromXampp(): void {
+    this.apiService.getUsersFromXampp().subscribe(res => {
+      if (!res.success || !Array.isArray(res.users) || res.users.length === 0) return;
+
+      const current = [...this.usersSubject.value];
+      let changed = false;
+
+      for (const remote of res.users) {
+        const idx = current.findIndex(
+          u => u.id === remote.id || u.email.toLowerCase() === (remote.email || '').toLowerCase()
+        );
+        if (idx === -1) {
+          current.push(remote);
+          changed = true;
+        } else if (
+          current[idx].fullName !== remote.fullName ||
+          current[idx].accountStatus !== remote.accountStatus ||
+          current[idx].assignedBicycleNumber !== remote.assignedBicycleNumber
+        ) {
+          current[idx] = { ...current[idx], ...remote };
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        this.usersSubject.next(current);
+        this.saveUsersDatabase(current);
+      }
+    });
   }
 
   public get currentUser(): User {
@@ -111,24 +148,46 @@ export class AuthService {
   }
 
   private saveUsersDatabase(users: User[]): void {
-    this.usersSubject.next(users);
     try {
-      localStorage.setItem(this.USERS_DB_STORAGE_KEY, JSON.stringify(users));
+      const mergedMap = new Map<string, User>();
+      const rawExisting = localStorage.getItem(this.USERS_DB_STORAGE_KEY);
+      if (rawExisting) {
+        const parsedExisting: User[] = JSON.parse(rawExisting);
+        if (Array.isArray(parsedExisting)) {
+          for (const eu of parsedExisting) {
+            if (eu && eu.id) mergedMap.set(eu.id, eu);
+          }
+        }
+      }
+      for (const u of users) {
+        if (u && u.id) mergedMap.set(u.id, u);
+      }
+      const mergedList = Array.from(mergedMap.values());
+      this.usersSubject.next(mergedList);
+      localStorage.setItem(this.USERS_DB_STORAGE_KEY, JSON.stringify(mergedList));
     } catch (e) {
+      this.usersSubject.next(users);
       console.error('Error saving users database to localStorage', e);
     }
   }
 
   private loadSessionFromStorage(): void {
-    const raw = localStorage.getItem(this.SESSION_STORAGE_KEY);
+    const raw =
+      (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(this.SESSION_STORAGE_KEY) : null) ||
+      localStorage.getItem(this.SESSION_STORAGE_KEY);
     if (raw) {
       try {
         const user: User = JSON.parse(raw);
-        // Verify user still exists in database
-        const match = this.usersSubject.value.find(u => u.id === user.id);
-        if (match) {
+        if (user && user.id) {
+          const match = this.usersSubject.value.find(u => u.id === user.id) || user;
+          if (!this.usersSubject.value.some(u => u.id === user.id)) {
+            this.saveUsersDatabase([user, ...this.usersSubject.value]);
+          }
           this.currentUserSubject.next(match);
           this.isAuthenticatedSubject.next(true);
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem(this.SESSION_STORAGE_KEY, JSON.stringify(match));
+          }
           return;
         }
       } catch (e) {
@@ -199,10 +258,12 @@ export class AuthService {
       email: cleanEmail,
       idNumber: cleanIdNumber,
       phone: dto.phone ? dto.phone.trim() : '0917-000-0000',
-      department: dto.department || 'College of Information & Communications Tech (CICT)',
+      department: dto.department || 'College of Information & Communications Technology (CICT)',
       role: dto.role || 'student',
       avatarUrl: defaultAvatar,
-      assignedBicycleNumber: dto.assignedBicycleNumber,
+      assignedBicycleNumber: dto.role === 'driver'
+        ? (dto.assignedBicycleNumber?.trim().toUpperCase() || `PEDICAB-${Date.now().toString().slice(-3)}`)
+        : dto.assignedBicycleNumber,
       accountStatus: 'active',
       password: dto.password,
       createdAt: new Date().toISOString()
@@ -279,6 +340,9 @@ export class AuthService {
     this.isAuthenticatedSubject.next(true);
     this.isGuestBrowsing = false;
     try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(this.SESSION_STORAGE_KEY, JSON.stringify(user));
+      }
       localStorage.setItem(this.SESSION_STORAGE_KEY, JSON.stringify(user));
     } catch (e) {
       console.error('Error saving session', e);
@@ -387,7 +451,7 @@ export class AuthService {
       idNumber: data.idNumber.trim().toUpperCase(),
       role: data.role,
       phone: data.phone?.trim() || '0917-000-0000',
-      department: data.department || (data.role === 'driver' ? 'NEUST Fleet & Campus Safety Transport' : 'College of Information & Communications Tech (CICT)'),
+      department: data.department || (data.role === 'driver' ? 'NEUST Fleet & Campus Safety Transport' : 'College of Information & Communications Technology (CICT)'),
       assignedBicycleNumber: data.assignedBicycleNumber || (data.role === 'driver' ? 'BIKE-003' : undefined),
       avatarUrl: defaultAvatar,
       accountStatus: 'active',
@@ -450,7 +514,7 @@ export class AuthService {
       email: email,
       idNumber: randomId,
       phone: '0917-Google-Auth',
-      department: 'College of Information & Communications Tech (CICT)',
+      department: 'College of Information & Communications Technology (CICT)',
       role: role,
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
       accountStatus: 'active',
@@ -474,6 +538,9 @@ export class AuthService {
     this.isGuestBrowsing = false;
     this.currentUserSubject.next(GUEST_USER);
     try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(this.SESSION_STORAGE_KEY);
+      }
       localStorage.removeItem(this.SESSION_STORAGE_KEY);
     } catch (e) {}
     this.isAuthModalOpen = false;

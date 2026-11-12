@@ -76,6 +76,10 @@ export interface BookingRequest {
   targetDriverId?: string;
   requestExpiresAt?: number;
   rejectedDriverIds?: string[];
+  rejectedBikeNumbers?: string[];
+  eligibleBikeNumbers?: string[];
+  eligibleDriverIds?: string[];
+  notifiedDriversCount?: number;
 }
 
 export interface Coordinates {

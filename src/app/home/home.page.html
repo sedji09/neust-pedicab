@@ -6,8 +6,11 @@
     *ngIf="notificationService.inAppToast$ | async as toast"
     (click)="onToastClick(toast)">
     <div class="in-app-toast-card">
-      <div class="toast-icon-circle">
-        <ion-icon [name]="getToastIcon(toast.type)"></ion-icon>
+      <div class="toast-icon-circle" [style.background]="toast.type === 'system' ? 'transparent' : null" [style.padding]="toast.type === 'system' ? '2px' : null">
+        <img *ngIf="toast.type === 'system'; else homeToastIonIcon" src="assets/images/BikeGO_logo.png" alt="BikeGo" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
+        <ng-template #homeToastIonIcon>
+          <ion-icon [name]="getToastIcon(toast.type)"></ion-icon>
+        </ng-template>
       </div>
       <div class="toast-content-col">
         <div class="toast-top-meta">

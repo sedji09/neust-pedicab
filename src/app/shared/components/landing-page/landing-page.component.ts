@@ -58,8 +58,8 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
             <ion-icon name="arrow-back-outline"></ion-icon>
           </button>
 
-          <div class="brand-logo-circle">
-            <ion-icon name="bicycle-outline"></ion-icon>
+          <div style="height: 40px; width: auto; flex-shrink: 0; display: flex; align-items: center;">
+            <img src="assets/images/BikeGO_logo.png" alt="NEUST BikeGo" style="height: 100%; width: auto; object-fit: contain; display: block;" />
           </div>
           <div class="brand-text">
             <h2 class="brand-name">NEUST <span>BikeGo</span></h2>
@@ -98,8 +98,8 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
 
           <p class="hero-description">
             {{ isFil 
-              ? 'Real-time e-shuttle tracking, digital passenger queueing, at maasahang biyahe sa lahat ng gusali at kolehiyo ng NEUST Sumacab.' 
-              : 'Real-time e-shuttle tracking, digital passenger queueing, and reliable rides across all buildings and colleges of NEUST Sumacab.' 
+              ? 'Real-time e-pedicab tracking, digital passenger queueing, at maasahang biyahe sa lahat ng gusali at kolehiyo ng NEUST Sumacab.' 
+              : 'Real-time e-pedicab tracking, digital passenger queueing, and reliable rides across all buildings and colleges of NEUST Sumacab.' 
             }}
           </p>
 
@@ -124,16 +124,6 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
               </div>
               <ion-icon name="arrow-forward-outline" class="cta-arrow"></ion-icon>
             </button>
-
-            <!-- 3. Subukan bilang Bisita (Explore as Guest) -->
-            <button type="button" class="btn-cta-outline btn-guest" (click)="authService.enterGuestMode()">
-              <ion-icon name="compass-outline"></ion-icon>
-              <div class="btn-cta-col">
-                <strong>{{ isFil ? 'Subukan bilang Bisita (Explore as Guest)' : 'Explore as Guest Passenger' }}</strong>
-                <span>{{ isFil ? 'Tingnan ang mapa at shuttle status' : 'View campus map & live shuttles' }}</span>
-              </div>
-              <ion-icon name="arrow-forward-outline" class="cta-arrow"></ion-icon>
-            </button>
           </div>
         </section>
 
@@ -141,7 +131,7 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
         <section class="live-stats-bar">
           <div class="stat-bubble">
             <span class="sb-val">7</span>
-            <span class="sb-lbl">{{ isFil ? 'Aktibong Tricycle' : 'Active Shuttles' }}</span>
+            <span class="sb-lbl">{{ isFil ? 'Aktibong Tricycle' : 'Active Pedicabs' }}</span>
           </div>
           <div class="sb-divider"></div>
           <div class="stat-bubble">
@@ -191,36 +181,6 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
                 <h4>{{ isFil ? 'Digital Pila at Pasahero System' : 'Digital Queueing System' }}</h4>
                 <p>{{ isFil ? 'Wala nang siksikan o pag-aagawan. Automated queue ticket sa bawat biyahe.' : 'Fair, orderly queue tickets and instant boarding notifications.' }}</p>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Demo Quick Access (For evaluators and defense panel) -->
-        <section class="demo-switch-section">
-          <div class="demo-card-inner">
-            <div class="dci-head">
-              <ion-icon name="sparkles-outline"></ion-icon>
-              <div>
-                <h4>{{ isFil ? 'Mabilisang Demo Access (Para sa Evaluators)' : 'Quick Demo Access (For Evaluators)' }}</h4>
-                <span>{{ isFil ? 'Subukan agad ang iba\'t ibang user portal' : 'Instantly log in to evaluate specific roles' }}</span>
-              </div>
-            </div>
-
-            <div class="demo-buttons-row">
-              <button type="button" class="btn-demo-pill demo-student" (click)="quickLogin('student')">
-                <ion-icon name="school-outline"></ion-icon>
-                <span>{{ isFil ? 'Estudyante (Student)' : 'Student Demo' }}</span>
-              </button>
-
-              <button type="button" class="btn-demo-pill demo-driver" (click)="quickLogin('driver')">
-                <ion-icon name="bicycle-outline"></ion-icon>
-                <span>{{ isFil ? 'Driver (BIKE-003)' : 'Driver Demo' }}</span>
-              </button>
-
-              <button type="button" class="btn-demo-pill demo-admin" (click)="quickLogin('admin')">
-                <ion-icon name="shield-checkmark-outline"></ion-icon>
-                <span>{{ isFil ? 'Admin Dispatcher' : 'Admin Demo' }}</span>
-              </button>
             </div>
           </div>
         </section>
@@ -487,26 +447,6 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
                 <span>{{ isFil ? 'Pumasok sa BikeGo' : 'Sign In to BikeGo' }}</span>
               </button>
             </form>
-
-            <!-- Quick Demo One-Click Access -->
-            <div class="auth-sub-divider">
-              <span>{{ isFil ? 'Mabilisang Subok (Demo Accounts)' : 'Quick Demo Logins' }}</span>
-            </div>
-
-            <div class="demo-quick-row">
-              <button type="button" class="demo-btn-chip student" (click)="quickLogin('student')">
-                <ion-icon name="school-outline"></ion-icon>
-                <span>Student Maria</span>
-              </button>
-              <button type="button" class="demo-btn-chip driver" (click)="quickLogin('driver')">
-                <ion-icon name="bicycle-outline"></ion-icon>
-                <span>Driver Juan</span>
-              </button>
-              <button type="button" class="demo-btn-chip admin" (click)="quickLogin('admin')">
-                <ion-icon name="shield-checkmark-outline"></ion-icon>
-                <span>Admin Roberto</span>
-              </button>
-            </div>
           </div>
 
           <!-- ==================== TAB B: REGISTER FORM ==================== -->
@@ -530,7 +470,7 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
                     [class.is-selected]="regRole === 'driver'" 
                     (click)="regRole = 'driver'">
                     <ion-icon name="bicycle-outline"></ion-icon>
-                    <span>{{ isFil ? 'Shuttle Driver' : 'Shuttle Driver' }}</span>
+                    <span>{{ isFil ? 'Pedicab Driver' : 'Pedicab Driver' }}</span>
                   </button>
                 </div>
               </div>
@@ -591,15 +531,15 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
                 </div>
               </div>
 
-              <!-- Department -->
-              <div class="form-field-group">
+              <!-- Department (Students Only) -->
+              <div class="form-field-group" *ngIf="regRole === 'student'">
                 <label>{{ isFil ? 'Kolehiyo / Department' : 'College / Department' }}</label>
                 <div class="input-box">
                   <ion-icon name="school-outline"></ion-icon>
                   <select [(ngModel)]="regDepartment" name="regDepartment" class="native-dropdown">
-                    <option value="College of Information & Communications Tech (CICT)">CICT — Information Technology</option>
+                    <option value="College of Information & Communications Technology (CICT)">CICT — Information Technology</option>
                     <option value="College of Engineering">COE — College of Engineering</option>
-                    <option value="College of Management & Business Tech (CMBT)">CMBT — Management & Business</option>
+                    <option value="College of Management & Business Technology (CMBT)">CMBT — Management & Business</option>
                     <option value="College of Education">COED — College of Education</option>
                     <option value="College of Nursing & Allied Health">CON — Nursing & Allied Health</option>
                     <option value="Campus Transportation Services">Campus Transportation & Fleet</option>
@@ -610,7 +550,7 @@ import { UserRole, RegisterUserDto } from '../../../core/models/models';
 
               <!-- Assigned Bicycle (If Driver) -->
               <div class="form-field-group" *ngIf="regRole === 'driver'">
-                <label>{{ isFil ? 'Assigned Shuttle Bike Number' : 'Assigned Bike Number' }}</label>
+                <label>{{ isFil ? 'Assigned Pedicab Number' : 'Assigned Pedicab Number' }}</label>
                 <div class="input-box">
                   <ion-icon name="bicycle-outline"></ion-icon>
                   <input 
@@ -1933,7 +1873,7 @@ export class LandingPageComponent implements OnInit {
 
   // Google Student Fields
   public studentIdNumber = '';
-  public studentDepartment = 'College of Information & Communications Tech (CICT)';
+  public studentDepartment = 'College of Information & Communications Technology (CICT)';
   public studentPhone = '';
 
   // Google Driver Fields
@@ -1944,9 +1884,9 @@ export class LandingPageComponent implements OnInit {
   public bikeChips = ['BIKE-001', 'BIKE-002', 'BIKE-003', 'BIKE-004', 'PEDICAB-01', 'PEDICAB-02'];
 
   public departmentOptions: string[] = [
-    'College of Information & Communications Tech (CICT)',
+    'College of Information & Communications Technology (CICT)',
     'College of Engineering (COE)',
-    'College of Management & Business Tech (CMBT)',
+    'College of Management & Business Technology (CMBT)',
     'College of Education (COED)',
     'College of Nursing & Allied Health (CON)',
     'College of Architecture (COA)',
@@ -1966,7 +1906,7 @@ export class LandingPageComponent implements OnInit {
   public regIdNumber = '';
   public regEmail = '';
   public regPhone = '';
-  public regDepartment = 'College of Information & Communications Tech (CICT)';
+  public regDepartment = 'College of Information & Communications Technology (CICT)';
   public regAssignedBike = '';
   public regPassword = '';
   public regConfirmPassword = '';
@@ -2044,9 +1984,7 @@ export class LandingPageComponent implements OnInit {
       });
       const response = await SocialLogin.login({
         provider: 'google',
-        options: {
-          scopes: ['email', 'profile']
-        }
+        options: {}
       });
       let email = 'student.google@neust.edu.ph';
       let name = '';
@@ -2091,10 +2029,13 @@ export class LandingPageComponent implements OnInit {
           this.cdr.detectChanges();
         }
       });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Native Google Sign-In prompt unavailable or cancelled:', e);
+      const detail = e?.message ? ` (${e.message})` : '';
       this.ngZone.run(() => {
-        this.errorBanner = this.isFil ? 'Kinansela o hindi natuloy ang Google Sign-In.' : 'Google Sign-In was cancelled or unavailable.';
+        this.errorBanner = this.isFil
+          ? `Kinansela o hindi natuloy ang Google Sign-In.${detail}`
+          : `Google Sign-In was cancelled or failed.${detail}`;
         this.cdr.detectChanges();
       });
     }
@@ -2235,12 +2176,5 @@ export class LandingPageComponent implements OnInit {
     } else {
       this.errorBanner = res.message;
     }
-  }
-
-  public quickLogin(role: UserRole): void {
-    const user = this.authService.loginAsDemo(role);
-    this.toastMsg = `Logged in as ${user.fullName} (${role.toUpperCase()}).`;
-    this.showToast = true;
-    this.viewState = 'welcome';
   }
 }

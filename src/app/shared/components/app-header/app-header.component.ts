@@ -30,7 +30,7 @@ import { Observable, Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { StateService } from '../../../core/services/state.service';
 import { LanguageService } from '../../../core/services/language.service';
-import { NotificationService } from '../../../core/services/notification.service';
+import { NotificationService, InAppToast } from '../../../core/services/notification.service';
 import { CampusLocation } from '../../../core/models/models';
 
 @Component({
@@ -96,7 +96,7 @@ import { CampusLocation } from '../../../core/models/models';
 
               <div *ngIf="filteredLocations.length === 0" class="dropdown-empty-state">
                 <ion-icon name="location-outline"></ion-icon>
-                <p>Walang nahanap na lugar para sa "{{ searchQuery }}"</p>
+                <p>{{ langService.currentLanguage === 'fil' ? 'Walang nahanap na lugar para sa' : 'No places found for' }} "{{ searchQuery }}"</p>
               </div>
             </div>
           </div>
@@ -104,13 +104,12 @@ import { CampusLocation } from '../../../core/models/models';
 
         <!-- 1B. DRIVER BRAND TITLE (For Driver Role) -->
         <div *ngIf="authService.role === 'driver'" class="header-driver-brand-bar">
-          <div class="hdb-bike-pill">
-            <ion-icon name="bicycle-outline"></ion-icon>
-            <strong>{{ authService.currentUser?.assignedBicycleNumber || 'BIKE-003' }}</strong>
+          <div style="height: 36px; width: auto; flex-shrink: 0; display: flex; align-items: center;">
+            <img src="assets/images/BikeGO_logo.png" alt="NEUST BikeGo" style="height: 100%; width: auto; object-fit: contain; display: block;" />
           </div>
           <div class="hdb-info-col">
             <span class="hdb-title">NEUST Driver Portal</span>
-            <span class="hdb-sub">● Handa sa Pasada</span>
+            <span class="hdb-sub">{{ langService.currentLanguage === 'fil' ? '● Handa sa Pasada' : '● Ready for Trips' }}</span>
           </div>
         </div>
 
@@ -630,6 +629,144 @@ import { CampusLocation } from '../../../core/models/models';
       }
     }
 
+    /* ==================== MODERN IN-APP FLOATING HEADS-UP NOTIFICATION ==================== */
+    .in-app-toast-wrapper {
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      margin: auto;
+      max-width: 480px;
+      z-index: 99999;
+      cursor: pointer;
+      animation: inAppToastSlideIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .in-app-toast-card {
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      position: relative;
+      overflow: hidden;
+
+      .toast-glow-strip {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 4px;
+      }
+
+      &.toast-trip {
+        .toast-glow-strip { background: #10b981; }
+        .toast-icon-circle { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+      }
+
+      &.toast-driver {
+        .toast-glow-strip { background: #3b82f6; }
+        .toast-icon-circle { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+      }
+
+      &.toast-queue {
+        .toast-glow-strip { background: #f59e0b; }
+        .toast-icon-circle { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+      }
+
+      &.toast-system {
+        .toast-glow-strip { background: #8b5cf6; }
+        .toast-icon-circle { background: rgba(139, 92, 246, 0.2); color: #c084fc; }
+      }
+
+      .toast-icon-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+
+      .toast-content-col {
+        flex: 1;
+        min-width: 0;
+
+        .toast-top-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 6px;
+
+          .toast-title {
+            color: #ffffff;
+            font-size: 13.5px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .toast-now-tag {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 600;
+            flex-shrink: 0;
+          }
+        }
+
+        .toast-message-body {
+          margin: 2px 0 0;
+          font-size: 12px;
+          color: #cbd5e1;
+          line-height: 1.35;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      }
+
+      .btn-toast-dismiss {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #94a3b8;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: all 0.15s ease;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #ffffff;
+        }
+      }
+
+      /* Countdown timer bar shrinking over 4.5s */
+      .toast-progress-countdown {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #2563eb, #10b981);
+        width: 100%;
+        animation: toastProgress 4.5s linear forwards;
+      }
+    }
+
     @keyframes dropdownSlide {
       from {
         opacity: 0;
@@ -639,6 +776,26 @@ import { CampusLocation } from '../../../core/models/models';
         opacity: 1;
         transform: translateY(0);
       }
+    }
+
+    @keyframes inAppToastSlideIn {
+      0% {
+        opacity: 0;
+        transform: translateY(-40px) scale(0.92);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(4px) scale(1.02);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes toastProgress {
+      from { width: 100%; }
+      to { width: 0%; }
     }
 
     @keyframes badgePulse {
@@ -779,5 +936,24 @@ export class AppHeaderComponent implements OnInit, OnDestroy {
     }
     if (cat === 'gate' || cat === 'terminal' || cat === 'services') return 'bicycle-outline';
     return 'location-outline';
+  }
+
+  public getToastIcon(type: string): string {
+    if (type === 'trip' || type === 'driver') return 'bicycle-outline';
+    if (type === 'queue') return 'flash-outline';
+    if (type === 'safety') return 'shield-checkmark-outline';
+    return 'notifications-outline';
+  }
+
+  public onToastClick(toast: InAppToast): void {
+    this.notificationService.dismissToast();
+    if (toast.actionCallback) {
+      toast.actionCallback();
+    } else if (toast.type === 'trip' || toast.type === 'driver') {
+      this.stateService.closeNotificationsPage();
+      this.stateService.setActiveTab('queue');
+    } else {
+      this.stateService.openNotificationsPage();
+    }
   }
 }

@@ -92,8 +92,11 @@ import { AppNotification } from '../../../core/models/models';
           (click)="onCardClick(notif)">
 
           <!-- Icon Box with dynamic neon tint -->
-          <div class="notif-icon-circle">
-            <ion-icon [name]="getTypeIcon(notif.type)"></ion-icon>
+          <div class="notif-icon-circle" [style.background]="notif.type === 'system' ? 'transparent' : null" [style.padding]="notif.type === 'system' ? '2px' : null">
+            <img *ngIf="notif.type === 'system'; else notifIonIcon" src="assets/images/BikeGO_logo.png" alt="BikeGo" style="width: 100%; height: 100%; object-fit: contain; display: block;" />
+            <ng-template #notifIonIcon>
+              <ion-icon [name]="getTypeIcon(notif.type)"></ion-icon>
+            </ng-template>
           </div>
 
           <!-- Content Details -->

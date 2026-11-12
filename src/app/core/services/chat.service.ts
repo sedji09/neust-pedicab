@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ChatMessage, BookingRequest } from '../models/models';
 import { NotificationService } from './notification.service';
+import { LanguageService } from './language.service';
 
 @Injectable({
   providedIn: 'root'
@@ -17,8 +18,38 @@ export class ChatService {
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$: Observable<number> = this.unreadCountSubject.asObservable();
 
-  constructor(private notificationService: NotificationService) {
+  constructor(
+    private notificationService: NotificationService,
+    private languageService: LanguageService
+  ) {
     this.initMessages();
+
+    // Real-time cross-tab synchronization so Passenger and Driver tabs see each other's real messages immediately
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', event => {
+        if (event.key === this.STORAGE_KEY) {
+          this.syncMessagesFromStorage();
+        }
+      });
+    }
+  }
+
+  public syncMessagesFromStorage(): void {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      if (saved) {
+        let parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          parsed = parsed.filter((m: ChatMessage) => m.id !== 'msg-prev-1' && m.id !== 'msg-prev-2');
+          if (JSON.stringify(parsed) !== JSON.stringify(this.messagesSubject.value)) {
+            this.messagesSubject.next(parsed);
+            this.recalcUnread(parsed);
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore storage parse error
+    }
   }
 
   private initMessages(): void {
@@ -61,8 +92,9 @@ export class ChatService {
   }
 
   public getMessagesForBooking(bookingId?: string): ChatMessage[] {
-    if (!bookingId) return this.currentMessages;
-    return this.currentMessages.filter(m => !m.bookingId || m.bookingId === bookingId);
+    this.syncMessagesFromStorage();
+    if (!bookingId) return [];
+    return this.currentMessages.filter(m => m.bookingId === bookingId);
   }
 
   public getLatestMessageForBooking(bookingId?: string): ChatMessage | undefined {
@@ -71,21 +103,29 @@ export class ChatService {
   }
 
   /**
-   * Initializes welcome message from driver when booking is accepted
+   * Initializes the ONLY automatic welcome message from driver when booking is accepted
    */
   public initBookingWelcome(booking: BookingRequest): void {
+    this.syncMessagesFromStorage();
     const list = [...this.currentMessages];
     const existingWelcome = list.find(m => m.bookingId === booking.id);
     if (!existingWelcome) {
+      const isFil = this.languageService.currentLanguage === 'fil';
+      const driverName = booking.assignedDriverName || 'Driver';
+      const bikeNum = booking.assignedBikeNumber || 'BIKE-001';
+      const welcomeText = isFil
+        ? `Hello po ${booking.studentName}! Ako po si ${driverName} (${bikeNum}). Tinanggap ko na po ang booking niyo papunta sa ${booking.destinationName}. Papunta na po ako sa ${booking.pickupName}!`
+        : `Hello ${booking.studentName}! I am ${driverName} (${bikeNum}). I have accepted your booking to ${booking.destinationName} and am on my way to ${booking.pickupName}.`;
+
       const welcomeMsg: ChatMessage = {
         id: 'msg-' + Date.now(),
         bookingId: booking.id,
-        senderId: booking.assignedDriverId || 'driver-003',
-        senderName: booking.assignedDriverName || 'Juan Dela Cruz',
+        senderId: booking.assignedDriverId || 'driver-001',
+        senderName: driverName,
         senderRole: 'driver',
         receiverId: booking.studentId,
         receiverName: booking.studentName,
-        message: `Hello po ${booking.studentName}! Ako po si ${booking.assignedDriverName || 'Kuya Driver'} (${booking.assignedBikeNumber || 'BIKE-003'}). Tinanggap ko na po ang booking niyo papunta sa ${booking.destinationName}. Papunta na po ako sa ${booking.pickupName}!`,
+        message: welcomeText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isRead: false
       };
@@ -94,7 +134,7 @@ export class ChatService {
 
       // Trigger notification for student
       this.notificationService.notify(
-        `💬 Mensahe mula kay ${booking.assignedDriverName || 'Driver'}`,
+        isFil ? `💬 Mensahe mula kay ${driverName}` : `💬 Message from ${driverName}`,
         welcomeMsg.message,
         'driver'
       );
@@ -102,7 +142,7 @@ export class ChatService {
   }
 
   /**
-   * Student sends a message to the driver
+   * Student sends a real message to the driver (no automatic fake bot reply)
    */
   public sendStudentMessage(
     text: string,
@@ -112,6 +152,7 @@ export class ChatService {
   ): void {
     if (!text || !text.trim()) return;
 
+    this.syncMessagesFromStorage();
     const list = [...this.currentMessages];
     const newMsg: ChatMessage = {
       id: 'msg-' + Date.now(),
@@ -119,25 +160,18 @@ export class ChatService {
       senderId: studentId,
       senderName: studentName,
       senderRole: 'student',
-      receiverId: booking?.assignedDriverId || 'driver-003',
-      receiverName: booking?.assignedDriverName || 'Juan Dela Cruz',
+      receiverId: booking?.assignedDriverId || 'driver-001',
+      receiverName: booking?.assignedDriverName || 'Driver',
       message: text.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isRead: true
+      isRead: false
     };
     list.push(newMsg);
     this.persistMessages(list);
-
-    // Simulate realistic Driver reply after 1.5 seconds if ride is active
-    if (booking && booking.status !== 'completed' && booking.status !== 'cancelled') {
-      setTimeout(() => {
-        this.simulateDriverReply(text.trim(), booking);
-      }, 1500);
-    }
   }
 
   /**
-   * Driver sends a response
+   * Driver sends a real response to the student
    */
   public sendDriverMessage(
     text: string,
@@ -146,11 +180,12 @@ export class ChatService {
   ): void {
     if (!text || !text.trim()) return;
 
+    this.syncMessagesFromStorage();
     const list = [...this.currentMessages];
     const newMsg: ChatMessage = {
       id: 'msg-' + Date.now(),
       bookingId: booking?.id,
-      senderId: driverUser?.id || booking?.assignedDriverId || 'driver-003',
+      senderId: driverUser?.id || booking?.assignedDriverId || 'driver-001',
       senderName: driverUser?.fullName || booking?.assignedDriverName || 'Driver',
       senderRole: 'driver',
       receiverId: booking?.studentId || 'student-001',
@@ -163,64 +198,16 @@ export class ChatService {
     this.persistMessages(list);
 
     // Alert student with chime and notification
+    const isFil = this.languageService.currentLanguage === 'fil';
     this.notificationService.notify(
-      `💬 Mensahe mula kay ${newMsg.senderName}`,
+      isFil ? `💬 Mensahe mula kay ${newMsg.senderName}` : `💬 Message from ${newMsg.senderName}`,
       newMsg.message,
       'driver'
     );
   }
 
-  /**
-   * Driver sends a response
-   */
-  private simulateDriverReply(studentText: string, booking: BookingRequest): void {
-    const list = [...this.currentMessages];
-    const lower = studentText.toLowerCase();
-
-    let replyText = 'Sige po, noted po!';
-    if (lower.includes('saan') || lower.includes('nasaan') || lower.includes('where')) {
-      replyText = `Nandito na po ako malapit sa may kanto, papasok na po sa ${booking.pickupName}!`;
-    } else if (lower.includes('waiting') || lower.includes('nandito') || lower.includes('here') || lower.includes('tapat')) {
-      replyText = 'Sige po Maam/Sir, nakikita ko na po kayo, tabi lang po ako sa gilid!';
-    } else if (lower.includes('salamat') || lower.includes('thank')) {
-      replyText = 'Walang anuman po! Ingat po palagi sa biyahe.';
-    } else if (lower.includes('tagal') || lower.includes('matagal') || lower.includes('traffic')) {
-      replyText = 'Medyo may kasabay lang pong mga estudyante sa daan pero mabilis lang po ito, papalapit na po!';
-    } else {
-      const replies = [
-        `Opo, papunta na po diyan sa ${booking.pickupName}!`,
-        'Sige po, naka-standby na po ako.',
-        'Noted po! Papasok na po ang pedicab sa waiting shed.',
-        'Opo, konting sandali na lang po nandiyan na po ako!'
-      ];
-      replyText = replies[Math.floor(Math.random() * replies.length)];
-    }
-
-    const driverMsg: ChatMessage = {
-      id: 'msg-' + Date.now(),
-      bookingId: booking.id,
-      senderId: booking.assignedDriverId || 'driver-003',
-      senderName: booking.assignedDriverName || 'Juan Dela Cruz',
-      senderRole: 'driver',
-      receiverId: booking.studentId,
-      receiverName: booking.studentName,
-      message: replyText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isRead: false
-    };
-
-    list.push(driverMsg);
-    this.persistMessages(list);
-
-    // Alert student with chime and notification
-    this.notificationService.notify(
-      `💬 Mensahe mula kay ${booking.assignedDriverName || 'Driver'}`,
-      replyText,
-      'driver'
-    );
-  }
-
   public markAllAsRead(): void {
+    this.syncMessagesFromStorage();
     const list = this.currentMessages.map(m => ({ ...m, isRead: true }));
     this.persistMessages(list);
   }

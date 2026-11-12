@@ -41,9 +41,20 @@ if ($action === 'accept') {
     $affected = $stmt->rowCount();
 
     if ($affected > 0) {
-        // Update driver's bike status to 'on_trip'
-        $bikeStmt = $pdo->prepare("UPDATE bicycles SET status = 'on_trip', passenger_count = 1 WHERE bike_number = ?");
-        $bikeStmt->execute([$bikeNumber]);
+        // Fetch booking passenger count to deduct seats on winning pedicab
+        $bkStmt = $pdo->prepare("SELECT fare_amount FROM bookings WHERE booking_uid = ? LIMIT 1");
+        $bkStmt->execute([$bookingUid]);
+        $bkRow = $bkStmt->fetch();
+        $paxBooked = max(1, min(4, intval(round(($bkRow['fare_amount'] ?? 10) / 10))));
+
+        // Update driver's bike status and passenger_count
+        $bikeStmt = $pdo->prepare("
+            UPDATE bicycles 
+            SET passenger_count = LEAST(max_capacity, passenger_count + ?),
+                status = CASE WHEN (passenger_count + ?) >= max_capacity THEN 'full' ELSE 'on_trip' END
+            WHERE bike_number = ?
+        ");
+        $bikeStmt->execute([$paxBooked, $paxBooked, $bikeNumber]);
 
         echo json_encode([
             'success' => true,

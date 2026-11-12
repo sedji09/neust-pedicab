@@ -94,6 +94,7 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
   @Input() selectedDestinationId: string | null = null;
   @Input() showHeaderControls = true;
   @Input() compactHeight = false;
+  @Input() allowBooking = true;
   @Input() defaultMode: 'visual' | 'leaflet' | 'google' = 'leaflet';
 
   // Feature 1: Custom Pickup Pin Inputs & Outputs
@@ -165,6 +166,14 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
   private leafletPickupStationMarker: any = null;
   private leafletDestinationStationMarker: any = null;
 
+  // Tracking Camera & Deduplication Guards (prevent auto-zoom/pan overrides during user drag)
+  private hasFramedTrackingCamera = false;
+  private lastFramedTrackingKey = '';
+  public userInteractedWithTrackingMap = false;
+  private isProgrammaticMove = false;
+  private trackingUpdateSeq = 0;
+  private lastRenderedTrackingSignature = '';
+
   constructor(
     private leafletService: LeafletMapService,
     private pickupService: PickupLocationService,
@@ -222,14 +231,26 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
       if (changes['locations'] || changes['selectedDestinationId']) {
         this.updateLeafletTerminalHubs();
         this.updateLeafletLocations();
-        this.updateLeafletRoute();
+        if (!this.isLiveTrackingActive()) {
+          this.updateLeafletRoute();
+        }
       }
       if (changes['designatedZones']) {
         this.updateLeafletZones();
       }
       if (changes['customPickupPin']) {
-        this.updateLeafletPickupPin();
-        this.updateLeafletRoute();
+        const prev = changes['customPickupPin'].previousValue as CustomPickupPin | null | undefined;
+        const curr = changes['customPickupPin'].currentValue as CustomPickupPin | null | undefined;
+        const coordsChanged =
+          !prev ||
+          !curr ||
+          prev.lat !== curr.lat ||
+          prev.lng !== curr.lng ||
+          prev.addressText !== curr.addressText;
+        if (coordsChanged && !this.isLiveTrackingActive()) {
+          this.updateLeafletPickupPin();
+          this.updateLeafletRoute();
+        }
       }
       if (changes['trackingSession'] || changes['activeBooking']) {
         this.updateLeafletTerminalHubs();
@@ -266,7 +287,7 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
       if (!this.leafletMap) {
         this.initLeafletMap();
       } else {
-        this.leafletMap.invalidateSize();
+        this.leafletMap.invalidateSize({ animate: false, pan: false });
         this.refreshAllLeafletLayers();
       }
     }, 80);
@@ -274,7 +295,7 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
 
   public invalidateMapSize(): void {
     if (this.leafletMap) {
-      this.leafletMap.invalidateSize();
+      this.leafletMap.invalidateSize({ animate: false, pan: false });
       this.refreshAllLeafletLayers();
     } else {
       this.initLeafletMap();
@@ -283,10 +304,14 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
 
   // --- Leaflet Management ---
 
+  private getDefaultCampusZoom(): number {
+    return typeof window !== 'undefined' && window.innerWidth < 768 ? 16 : 16.5;
+  }
+
   private async initLeafletMap(): Promise<void> {
     if (!this.leafletContainer?.nativeElement) return;
     if (this.leafletMap) {
-      this.leafletMap.invalidateSize();
+      this.leafletMap.invalidateSize({ animate: false, pan: false });
       return;
     }
 
@@ -295,18 +320,25 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
 
     this.leafletMap = this.leafletService.createMap(
       this.leafletContainer.nativeElement,
-      15.446200,
+      15.447000,
       120.939800,
-      17.5
+      this.getDefaultCampusZoom()
     );
 
     if (!this.leafletMap) return;
+
+    // Pause pedicab auto-follow only when the user manually drags away; zoom (+/-) keeps following the pedicab
+    this.leafletMap.on('dragstart', () => {
+      if (!this.isProgrammaticMove && this.isLiveTrackingActive()) {
+        this.userInteractedWithTrackingMap = true;
+      }
+    });
 
     // Observe container size changes so Leaflet never renders a 0px blank canvas
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => {
         if (this.leafletMap) {
-          this.leafletMap.invalidateSize();
+          this.leafletMap.invalidateSize({ animate: false, pan: false });
         }
       });
       this.resizeObserver.observe(this.leafletContainer.nativeElement);
@@ -324,12 +356,12 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
     // Ensure Leaflet calculates viewport geometry with zero clipping
     setTimeout(() => {
       if (this.leafletMap) {
-        this.leafletMap.invalidateSize();
+        this.leafletMap.invalidateSize({ animate: false, pan: false });
       }
     }, 120);
     setTimeout(() => {
       if (this.leafletMap) {
-        this.leafletMap.invalidateSize();
+        this.leafletMap.invalidateSize({ animate: false, pan: false });
       }
     }, 400);
   }
@@ -349,8 +381,8 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
   private updateLeafletTerminalHubs(): void {
     if (!this.leafletMap) return;
     this.leafletService.clearLayers(this.leafletMap, this.leafletTerminalHubLayers);
-    // Hide terminal hub badges only during active single-ride tracking or route preview
-    if (this.isLiveTrackingActive() || this.selectedDestinationId) return;
+    // Hide terminal hub badges during active single-ride tracking, route preview, or pure Admin location pin-picker mode
+    if (this.isLiveTrackingActive() || this.selectedDestinationId || (!this.showHeaderControls && (!this.bicycles || this.bicycles.length === 0))) return;
 
     this.leafletTerminalHubLayers = this.leafletService.renderTerminalHubMarkers(
       this.leafletMap,
@@ -454,6 +486,11 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
     }
 
     // Clean tracking layers if tracking ended
+    this.hasFramedTrackingCamera = false;
+    this.lastFramedTrackingKey = '';
+    this.userInteractedWithTrackingMap = false;
+    this.lastRenderedTrackingSignature = '';
+
     if (this.leafletPedicabMarker) {
       try { this.leafletPedicabMarker.remove(); } catch (e) {}
       this.leafletPedicabMarker = null;
@@ -513,7 +550,7 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
    * JoyRide / GrabFood Live Rider Tracking Engine
    * Road-following polyline, custom pedicab marker with heading, and distinct target station pin
    */
-  public async updateLeafletTrackingScene(): Promise<void> {
+  public async updateLeafletTrackingScene(forceReframe: boolean = false): Promise<void> {
     if (!this.leafletMap || !this.activeBooking || !this.isLiveTrackingActive()) return;
 
     const booking = this.activeBooking;
@@ -526,24 +563,36 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
       booking.status === 'driver_arrived';
     const targetLat = isArriving ? booking.pickupLat : booking.destinationLat;
     const targetLng = isArriving ? booking.pickupLng : booking.destinationLng;
-    const targetName = isArriving ? booking.pickupName : booking.destinationName;
 
     // 1. Guard and ensure origin is within realistic campus envelope
-    let originLat = bike.currentLocation.lat;
-    let originLng = bike.currentLocation.lng;
+    let originLat = bike.currentLocation?.lat ?? 15.444889;
+    let originLng = bike.currentLocation?.lng ?? 120.940417;
     if (!PickupLocationService.isInsideCampusBoundary(originLat, originLng)) {
       // If coordinates were corrupted by off-campus device GPS, snap origin to campus terminal
       originLat = 15.444889;
       originLng = 120.940417;
     }
 
+    const renderSignature = `${booking.id || booking.bookingNumber}::${booking.status}::${originLat.toFixed(5)}::${originLng.toFixed(5)}::${targetLat.toFixed(5)}::${targetLng.toFixed(5)}`;
+    if (!forceReframe && renderSignature === this.lastRenderedTrackingSignature && this.leafletRoutePolyline && this.leafletPedicabMarker) {
+      return;
+    }
+
+    const updateSeq = ++this.trackingUpdateSeq;
     const origin: [number, number] = [originLat, originLng];
     const destination: [number, number] = [targetLat, targetLng];
 
     const routeData = await this.routingService.getRoadRoute(origin, destination);
+
+    // Abort if a newer update started or tracking ended while awaiting road routing
+    if (updateSeq !== this.trackingUpdateSeq || !this.leafletMap || !this.isLiveTrackingActive()) {
+      return;
+    }
+
+    this.lastRenderedTrackingSignature = renderSignature;
     const waypoints = routeData.waypoints && routeData.waypoints.length >= 2 ? routeData.waypoints : [origin, destination];
 
-    // Clear previous tracking layers
+    // Clear previous tracking layers atomically after async await
     if (this.leafletRoutePolyline) {
       try { this.leafletRoutePolyline.remove(); } catch (e) {}
       this.leafletRoutePolyline = null;
@@ -607,28 +656,45 @@ export class CampusMapComponent implements OnInit, AfterViewInit, OnChanges, OnD
       );
     }
 
-    // 6. Camera framing (fit bounds to show both the rider and destination with padding)
-    try {
-      if (this.leafletRoutePolyline && typeof this.leafletRoutePolyline.getBounds === 'function') {
-        const polyBounds = this.leafletRoutePolyline.getBounds();
-        if (polyBounds && typeof polyBounds.isValid === 'function' && polyBounds.isValid()) {
-          this.leafletMap.fitBounds(polyBounds, { padding: [40, 40], maxZoom: 18 });
-        } else if (typeof L !== 'undefined' && L.latLngBounds) {
-          this.leafletMap.fitBounds(L.latLngBounds([origin, destination]), { padding: [40, 40], maxZoom: 18 });
+    // 6. Camera follow: center directly on the pedicab at start/phase change,
+    // then smoothly panTo its live position without changing the user's zoom level.
+    const trackingPhaseKey = `${booking.id || booking.bookingNumber}::${isArriving ? 'arriving' : 'transit'}`;
+    const isNewTrackingPhase = trackingPhaseKey !== this.lastFramedTrackingKey;
+    const isInitialOrRecenter = forceReframe || !this.hasFramedTrackingCamera || isNewTrackingPhase;
+
+    if (isInitialOrRecenter) {
+      this.hasFramedTrackingCamera = true;
+      this.lastFramedTrackingKey = trackingPhaseKey;
+    }
+
+    if (forceReframe || !this.userInteractedWithTrackingMap) {
+      this.isProgrammaticMove = true;
+      try {
+        if (isInitialOrRecenter) {
+          const currentZoom = typeof this.leafletMap.getZoom === 'function' ? this.leafletMap.getZoom() : 17;
+          const targetZoom = forceReframe ? Math.max(currentZoom || 17, 16.5) : 17;
+          this.leafletMap.setView([originLat, originLng], targetZoom, { animate: true });
+        } else {
+          // Smoothly follow pedicab coordinates while preserving the exact user zoom level
+          this.leafletMap.panTo([originLat, originLng], { animate: true, duration: 0.45 });
         }
-      } else if (typeof L !== 'undefined' && L.latLngBounds) {
-        this.leafletMap.fitBounds(L.latLngBounds([origin, destination]), { padding: [40, 40], maxZoom: 18 });
+      } catch (e) {
+      } finally {
+        setTimeout(() => {
+          this.isProgrammaticMove = false;
+        }, 450);
       }
-    } catch (e) {}
+    }
   }
 
   public recenterTracking(): void {
     if (this.isLiveTrackingActive()) {
-      this.updateLeafletTrackingScene();
+      this.userInteractedWithTrackingMap = false;
+      this.updateLeafletTrackingScene(true);
     } else if (this.customPickupPin) {
-      this.leafletMap?.setView([this.customPickupPin.lat, this.customPickupPin.lng], 18);
+      this.leafletMap?.setView([this.customPickupPin.lat, this.customPickupPin.lng], 17.5, { animate: true });
     } else {
-      this.leafletMap?.setView([15.446853, 120.939454], 17);
+      this.leafletMap?.setView([15.447000, 120.939800], this.getDefaultCampusZoom(), { animate: true });
     }
   }
 

@@ -19,7 +19,7 @@ export class PickupLocationService {
     [15.4474, 120.9414], // East: Along Narra Ave campus edge
     [15.4465, 120.9410], // East: East of NEUST Administration
     [15.4455, 120.9408], // South-East: Banaba St inner roadway
-    [15.444889, 120.940417], // SOUTH ANCHOR: 15°26'41.6"N 120°56'25.5"E (Pilahan ng NEUST Trike/Bike Shuttle)
+    [15.444889, 120.940417], // SOUTH ANCHOR: 15°26'41.6"N 120°56'25.5"E (Pilahan ng NEUST Trike/Bike Pedicab)
     [15.4445, 120.9392], // South: South of Rico Fajardo Hall / Hostel
     [15.4447, 120.9378], // South-West: Inner campus corner above creek
     [15.4455, 120.9370], // West: Along Sapang Buhay Creek inside campus

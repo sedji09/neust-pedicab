@@ -61,7 +61,7 @@ export class LoginPage implements OnInit {
 
   // Student Fields
   public studentIdNumber = '';
-  public studentDepartment = 'College of Information & Communications Tech (CICT)';
+  public studentDepartment = 'College of Information & Communications Technology (CICT)';
   public studentPhone = '';
 
   // Driver Fields
@@ -70,7 +70,7 @@ export class LoginPage implements OnInit {
   public driverPhone = '';
 
   public departmentOptions = [
-    'College of Information & Communications Tech (CICT)',
+    'College of Information & Communications Technology (CICT)',
     'College of Engineering (COE)',
     'College of Management & Business Technology (CMBT)',
     'College of Education (COED)',
@@ -134,9 +134,7 @@ export class LoginPage implements OnInit {
     try {
       const response = await SocialLogin.login({
         provider: 'google',
-        options: {
-          scopes: ['email', 'profile']
-        }
+        options: {}
       });
 
       console.log('Google login success response:', response);

@@ -22,6 +22,7 @@ import {
   playOutline,
   stopOutline,
   checkmarkCircleOutline,
+  checkmarkCircle,
   closeCircleOutline,
   alertCircleOutline,
   callOutline,
@@ -54,8 +55,7 @@ import {
   thumbsUpOutline,
   mapOutline,
   warningOutline,
-  checkmarkOutline
-} from 'ionicons/icons';
+  checkmarkOutline, chatbubbleOutline, people } from 'ionicons/icons';
 import { AuthService } from '../../core/services/auth.service';
 import { StateService } from '../../core/services/state.service';
 import { ApiService } from '../../core/services/api.service';
@@ -171,8 +171,16 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
   public issueDescription = '';
   public maintenancePhotoUrl = 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=400&q=80';
 
-  // Sound / Audio alert
+  // Sound / Audio alert & Paunahan race tracking
   private lastAlertBookingId: string | null = null;
+  private lastSeenIncomingBooking: BookingRequest | null = null;
+  private countdownTickInterval: any = null;
+  public lastClaimedAlertBanner: {
+    studentName: string;
+    claimedByDriverName: string;
+    claimedByBikeNumber: string;
+    bookingNumber: string;
+  } | null = null;
 
   // Toast
   public showToast = false;
@@ -194,51 +202,7 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
     public notificationService: NotificationService,
     private cdr: ChangeDetectorRef
   ) {
-    addIcons({
-      bicycleOutline,
-      navigateOutline,
-      timeOutline,
-      peopleOutline,
-      ticketOutline,
-      addOutline,
-      removeOutline,
-      playOutline,
-      stopOutline,
-      checkmarkCircleOutline,
-      closeCircleOutline,
-      alertCircleOutline,
-      callOutline,
-      locateOutline,
-      cameraOutline,
-      buildOutline,
-      refreshOutline,
-      personOutline,
-      logOutOutline,
-      speedometerOutline,
-      shieldCheckmarkOutline,
-      arrowForwardOutline,
-      locationOutline,
-      radioOutline,
-      checkmarkDoneOutline,
-      closeOutline,
-      pinOutline,
-      walkOutline,
-      cashOutline,
-      pricetagOutline,
-      chatbubbleEllipsesOutline,
-      chatbubbleEllipses,
-      send,
-      walletOutline,
-      trendingUpOutline,
-      chevronForwardOutline,
-      sparklesOutline,
-      flashOutline,
-      informationCircleOutline,
-      thumbsUpOutline,
-      mapOutline,
-      warningOutline,
-      checkmarkOutline
-    });
+    addIcons({people,cashOutline,chatbubbleOutline,closeCircleOutline,checkmarkCircleOutline,personOutline,callOutline,chatbubbleEllipsesOutline,informationCircleOutline,removeOutline,addOutline,navigateOutline,locationOutline,playOutline,checkmarkDoneOutline,arrowForwardOutline,closeOutline,locateOutline,pinOutline,checkmarkCircle,walletOutline,chevronForwardOutline,peopleOutline,mapOutline,buildOutline,bicycleOutline,logOutOutline,shieldCheckmarkOutline,send,timeOutline,ticketOutline,stopOutline,alertCircleOutline,cameraOutline,refreshOutline,speedometerOutline,radioOutline,walkOutline,pricetagOutline,chatbubbleEllipses,trendingUpOutline,sparklesOutline,flashOutline,thumbsUpOutline,warningOutline,checkmarkOutline});
   }
 
   public get isFil(): boolean {
@@ -246,31 +210,150 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.stateService.syncRegisteredDriverBicycles();
+
     const user = this.authService.currentUser;
-    if (user.assignedBicycleNumber) {
+    if (user?.assignedBicycleNumber) {
       this.myBikeNumber = user.assignedBicycleNumber;
+    } else {
+      const firstRegBike = this.stateService.getStateSnapshot().bicycles[0];
+      if (firstRegBike) {
+        this.myBikeNumber = firstRegBike.bikeNumber;
+      }
     }
+
+    this.subs.add(
+      this.authService.currentUser$.subscribe(u => {
+        this.stateService.syncRegisteredDriverBicycles();
+        if (u?.assignedBicycleNumber) {
+          this.myBikeNumber = u.assignedBicycleNumber;
+        }
+        this.syncMyActivePedicabToFleet();
+        this.cdr.detectChanges();
+      })
+    );
+
+    // Ensure state & active driver pedicab are synced immediately on driver init
+    this.stateService.syncBookingsFromStorage();
+    this.syncMyActivePedicabToFleet();
 
     // Auto-start GPS broadcast for driver
     this.startGpsTracking();
 
+    // 1-second UI ticker for smooth countdown bar & real-time cross-tab / cross-device booking check
+    let xamppPollTick = 0;
+    this.countdownTickInterval = setInterval(() => {
+      this.stateService.syncBookingsFromStorage();
+      this.chatService.syncMessagesFromStorage();
+      this.syncMyActivePedicabToFleet();
+
+      xamppPollTick++;
+      if (xamppPollTick % 2 === 0 && this.isDriverOnline) {
+        const active = this.myActiveBooking;
+        if (!active) {
+          const driverId = this.authService.currentUser?.id || 'driver-001';
+          this.apiService.pollDriverRequestsXampp(driverId).subscribe(res => {
+            if (res.success && res.hasRequest && res.booking) {
+              this.stateService.syncRemoteBooking(res.booking);
+              this.cdr.detectChanges();
+            } else if (res.success && !res.hasRequest && this.lastSeenIncomingBooking) {
+              this.stateService.cancelTransportationBooking(this.lastSeenIncomingBooking.id, 'Cancelled or expired');
+              this.cdr.detectChanges();
+            }
+          });
+        } else {
+          this.apiService.getBookingStatusXampp(active.id).subscribe(res => {
+            if (res.success && res.booking) {
+              this.stateService.syncRemoteBooking(res.booking);
+              this.cdr.detectChanges();
+            }
+          });
+        }
+      }
+
+      if (this.incomingBookingRequest || this.isDriverChatOpen) {
+        this.cdr.detectChanges();
+      }
+    }, 1000);
+
+    // Subscribe to Chat Messages for real-time passenger messages
+    this.subs.add(
+      this.chatService.messages$.subscribe(() => {
+        this.cdr.detectChanges();
+      })
+    );
+
+    // Listen for real-time Paunahan (First-to-Accept) claim notices from other drivers
+    this.subs.add(
+      this.stateService.lastClaimedBookingNotice$.subscribe(notice => {
+        if (!notice) return;
+        // If another pedicab accepted a booking that was popping up on our screen:
+        if (
+          notice.claimedByBikeNumber !== this.myBikeNumber &&
+          this.lastSeenIncomingBooking &&
+          this.lastSeenIncomingBooking.id === notice.bookingId
+        ) {
+          this.lastSeenIncomingBooking = null;
+          this.lastClaimedAlertBanner = {
+            studentName: notice.studentName,
+            claimedByDriverName: notice.claimedByDriverName,
+            claimedByBikeNumber: notice.claimedByBikeNumber,
+            bookingNumber: notice.bookingNumber
+          };
+          this.displayToast(
+            `⚡ Naunahan ka! Nakuha na ni ${notice.claimedByDriverName} (${notice.claimedByBikeNumber}) ang booking ni ${notice.studentName}.`
+          );
+          this.cdr.detectChanges();
+        }
+      })
+    );
+
     // Listen for real-time state updates (bookings, bicycles, queues, trips) across tabs/roles
     this.subs.add(
-      this.stateService.bookings$.subscribe(() => {
+      this.stateService.bookings$.subscribe(bookings => {
         const incoming = this.incomingBookingRequest;
-        if (incoming && incoming.id !== this.lastAlertBookingId) {
-          this.lastAlertBookingId = incoming.id;
-          const isFil = this.isFil;
-          this.notificationService.notify(
-            isFil ? '🔔 Bagong Hiling ng Biyahe!' : '🔔 New Ride Request!',
-            isFil
-              ? `Hiling ni ${incoming.studentName} sa ${incoming.pickupName} (${incoming.passengerCount} pasahero, ₱${incoming.fareAmount}.00).`
-              : `${incoming.studentName} requested a pickup at ${incoming.pickupName} (${incoming.passengerCount} pax, ₱${incoming.fareAmount}.00).`,
-            'driver',
-            undefined,
-            undefined,
-            'request'
-          );
+        if (incoming) {
+          this.lastSeenIncomingBooking = incoming;
+          this.lastClaimedAlertBanner = null;
+          if (incoming.id !== this.lastAlertBookingId) {
+            this.lastAlertBookingId = incoming.id;
+            this.playIncomingSound();
+            const isFil = this.isFil;
+            const eligibleCount = incoming.eligibleBikeNumbers?.length || 1;
+            this.notificationService.notify(
+              isFil ? '🔔 Bagong Sakay Request (Paunahan!)' : '🔔 New Ride Request (First to Accept!)',
+              isFil
+                ? `Hiling ni ${incoming.studentName} sa ${incoming.pickupName} (${incoming.passengerCount || 1} pasahero, ₱${incoming.fareAmount}.00) • Nag-popup sa ${eligibleCount} available na pedicab.`
+                : `${incoming.studentName} requested pickup at ${incoming.pickupName} (${incoming.passengerCount || 1} pax, ₱${incoming.fareAmount}.00) • Broadcasted to ${eligibleCount} pedicabs.`,
+              'driver',
+              undefined,
+              undefined,
+              'request'
+            );
+          }
+        } else if (this.lastSeenIncomingBooking) {
+          // Check if the previously visible popup was claimed by another driver or cancelled
+          const prevId = this.lastSeenIncomingBooking.id;
+          const updated = (bookings || []).find(b => b.id === prevId);
+          if (
+            updated &&
+            (updated.status === 'driver_arriving' || updated.status === 'accepted') &&
+            updated.assignedBikeNumber &&
+            updated.assignedBikeNumber !== this.myBikeNumber
+          ) {
+            this.lastClaimedAlertBanner = {
+              studentName: updated.studentName,
+              claimedByDriverName: updated.assignedDriverName || 'Ibang Driver',
+              claimedByBikeNumber: updated.assignedBikeNumber,
+              bookingNumber: updated.bookingNumber
+            };
+            this.displayToast(
+              `⚡ Naunahan ka! Nakuha na ni ${updated.assignedDriverName || 'Ibang Driver'} (${updated.assignedBikeNumber}) ang booking ni ${updated.studentName}.`
+            );
+          } else if (updated && updated.status === 'cancelled') {
+            this.displayToast(`❌ Kinansela ng pasahero (${updated.studentName}) ang booking request.`);
+          }
+          this.lastSeenIncomingBooking = null;
         }
         this.cdr.detectChanges();
       })
@@ -296,6 +379,10 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.countdownTickInterval) {
+      clearInterval(this.countdownTickInterval);
+      this.countdownTickInterval = null;
+    }
     this.stopGpsTracking();
     this.subs.unsubscribe();
   }
@@ -321,9 +408,74 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  private syncMyActivePedicabToFleet(): void {
+    const u = this.authService.currentUser;
+    const bikeNum = (this.myBikeNumber || u?.assignedBicycleNumber || 'BIKE-001').trim().toUpperCase();
+    this.myBikeNumber = bikeNum;
+    this.stateService.ensureActiveDriverOnMap(
+      {
+        id: u?.id || `driver-active-${bikeNum.toLowerCase()}`,
+        fullName: u?.fullName || 'Campus Driver',
+        phone: u?.phone || '0917-555-0101',
+        avatarUrl: u?.avatarUrl,
+        bikeNumber: bikeNum
+      },
+      this.liveLat || 15.444889,
+      this.liveLng || 120.940417
+    );
+  }
+
+  public get allFleetBicycles(): Bicycle[] {
+    return (this.stateService.getStateSnapshot().bicycles || []).filter(b => b.status !== 'maintenance');
+  }
+
   public get myBicycle(): Bicycle {
-    const bikes = this.stateService.getStateSnapshot().bicycles;
-    return bikes.find(b => b.bikeNumber === this.myBikeNumber) || bikes[0];
+    const bikes = this.stateService.getStateSnapshot().bicycles || [];
+    const found = bikes.find(b => b.bikeNumber === this.myBikeNumber) || bikes[0];
+    if (found) return found;
+
+    const u = this.authService.currentUser;
+    return {
+      id: 'bike-unregistered',
+      bikeNumber: this.myBikeNumber || u?.assignedBicycleNumber || 'UNREGISTERED',
+      driverId: u?.id || 'driver-unregistered',
+      driverName: u?.fullName || 'Driver',
+      driverPhoto: u?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+      driverPhone: u?.phone || '0917-000-0000',
+      passengerCount: 0,
+      maxCapacity: 4,
+      status: 'available',
+      currentLocation: {
+        x: 75.0,
+        y: 82.0,
+        lat: this.liveLat || 15.444889,
+        lng: this.liveLng || 120.940417,
+        stationName: 'Pilahan sa Gate (Main Gate Terminal)'
+      },
+      currentDestination: 'Main Entrance Gate',
+      pickupLocation: 'Main Entrance Gate',
+      heading: 0,
+      speedKmH: 0,
+      lastUpdate: 'Just now',
+      batteryPercent: 100
+    };
+  }
+
+  public selectMyBikeUnit(bikeNumber: string): void {
+    const bikes = this.stateService.getStateSnapshot().bicycles || [];
+    const targetBike = bikes.find(b => b.bikeNumber === bikeNumber);
+    if (!targetBike) return;
+
+    this.myBikeNumber = targetBike.bikeNumber;
+    const freeSeats = Math.max(0, targetBike.maxCapacity - targetBike.passengerCount);
+    this.displayToast(
+      `🚲 Lumipat sa ${targetBike.bikeNumber} (${targetBike.driverName}) • ${freeSeats}/${targetBike.maxCapacity} Bakanteng Upuan.`
+    );
+    this.cdr.detectChanges();
+  }
+
+  public dismissClaimedAlertBanner(): void {
+    this.lastClaimedAlertBanner = null;
   }
 
   public get activeTrip(): Trip | undefined {
@@ -446,37 +598,51 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
     // Only receive requests if driver is online and has no currently active trip
     if (!this.isDriverOnline || this.myActiveBooking) return undefined;
     return this.stateService.getIncomingRequestForDriver(
-      this.authService.currentUser?.id,
+      this.myBicycle?.driverId || this.authService.currentUser?.id,
       this.myBikeNumber
+    );
+  }
+
+  public getBroadcastEligibleBikes(req: BookingRequest): Bicycle[] {
+    const neededSeats = Math.max(1, Math.min(4, req.passengerCount || 1));
+    return this.stateService.getEligibleBicyclesForBooking(
+      neededSeats,
+      req.pickupLat,
+      req.pickupLng,
+      req.rejectedDriverIds || [],
+      req.rejectedBikeNumbers || []
     );
   }
 
   public get requestRemainingSeconds(): number {
     const req = this.incomingBookingRequest;
-    if (!req || !req.requestExpiresAt) return 20;
+    if (!req || !req.requestExpiresAt) return 60;
     const diff = Math.ceil((req.requestExpiresAt - Date.now()) / 1000);
-    return Math.max(0, Math.min(20, diff));
+    return Math.max(1, Math.min(90, diff));
   }
 
   public get myActiveBooking(): BookingRequest | undefined {
     return this.stateService.getActiveBookingForDriver(
-      this.authService.currentUser?.id,
+      this.myBicycle?.driverId || this.authService.currentUser?.id,
       this.myBikeNumber
     );
   }
 
   public acceptIncomingBooking(booking: BookingRequest): void {
     const user = this.authService.currentUser;
+    const currentBike = this.myBicycle;
     const driverInfo = {
-      id: user?.id || 'driver-001',
-      name: user?.fullName || 'Pedro Ramirez',
-      phone: user?.phone || '0917-555-0101',
-      photo: user?.avatarUrl,
+      id: currentBike?.driverId || user?.id || 'driver-003',
+      name: currentBike?.driverName || user?.fullName || 'Juan Dela Cruz',
+      phone: currentBike?.driverPhone || user?.phone || '0917-555-0101',
+      photo: currentBike?.driverPhoto || user?.avatarUrl,
       bikeNumber: this.myBikeNumber
     };
 
     const success = this.stateService.driverRespondBooking(booking.id, driverInfo, 'accept');
     if (success) {
+      this.lastSeenIncomingBooking = null;
+      this.lastClaimedAlertBanner = null;
       this.apiService.respondBookingXampp(
         booking.id,
         driverInfo.id,
@@ -496,21 +662,82 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
       });
 
       this.currentTab = 'dashboard';
-      this.displayToast(`Tinanggap ang booking para kay ${booking.studentName}! Pumunta na sa pickup point.`);
+      this.displayToast(
+        this.isFil
+          ? `✅ Ikaw ang unang naka-accept (${driverInfo.bikeNumber})! Pumunta na sa pickup point ni ${booking.studentName}.`
+          : `✅ Booking accepted (${driverInfo.bikeNumber})! Please proceed to ${booking.studentName}'s pickup point.`
+      );
     } else {
-      this.displayToast('⚠️ Ang booking ay na-accept na ng ibang driver o nag-expire na.');
+      const latest = this.stateService.getBookingById(booking.id);
+      if (latest && latest.assignedBikeNumber) {
+        this.lastSeenIncomingBooking = null;
+        this.lastClaimedAlertBanner = {
+          studentName: latest.studentName,
+          claimedByDriverName: latest.assignedDriverName || 'Ibang Driver',
+          claimedByBikeNumber: latest.assignedBikeNumber,
+          bookingNumber: latest.bookingNumber
+        };
+        this.displayToast(
+          `⚡ Naunahan ka! Nakuha na ni ${latest.assignedDriverName} (${latest.assignedBikeNumber}) ang booking ni ${latest.studentName}.`
+        );
+      } else {
+        this.displayToast('⚠️ Ang booking ay nakuha na ng ibang driver o kinansela na.');
+      }
+    }
+  }
+
+  /**
+   * Simulates another competing pedicab accepting the ride first ("Paunahan" race demo)
+   */
+  public simulateCompetingDriverAccept(booking: BookingRequest): void {
+    const eligible = this.getBroadcastEligibleBikes(booking).filter(b => b.bikeNumber !== this.myBikeNumber);
+    const competitor = eligible[0] || this.allFleetBicycles.find(b => b.bikeNumber !== this.myBikeNumber);
+    if (!competitor) {
+      this.displayToast('Ikaw lang ang available na pedicab para sa booking na ito!');
+      return;
+    }
+
+    const driverInfo = {
+      id: competitor.driverId,
+      name: competitor.driverName,
+      phone: competitor.driverPhone || '0917-555-0101',
+      photo: competitor.driverPhoto,
+      bikeNumber: competitor.bikeNumber
+    };
+
+    const ok = this.stateService.driverRespondBooking(booking.id, driverInfo, 'accept');
+    if (ok) {
+      this.lastSeenIncomingBooking = null;
+      this.lastClaimedAlertBanner = {
+        studentName: booking.studentName,
+        claimedByDriverName: competitor.driverName,
+        claimedByBikeNumber: competitor.bikeNumber,
+        bookingNumber: booking.bookingNumber
+      };
+      this.chatService.initBookingWelcome({
+        ...booking,
+        assignedDriverId: driverInfo.id,
+        assignedDriverName: driverInfo.name,
+        assignedDriverPhone: driverInfo.phone,
+        assignedBikeNumber: driverInfo.bikeNumber
+      });
+      this.displayToast(
+        `⚡ Naunahan ka! Unang nakapindot ng Accept si ${competitor.driverName} (${competitor.bikeNumber})!`
+      );
     }
   }
 
   public rejectIncomingBooking(booking: BookingRequest): void {
     const user = this.authService.currentUser;
+    const currentBike = this.myBicycle;
     const driverInfo = {
-      id: user?.id || 'driver-001',
-      name: user?.fullName || 'Pedro Ramirez',
-      phone: user?.phone || '0917-555-0101',
+      id: currentBike?.driverId || user?.id || 'driver-003',
+      name: currentBike?.driverName || user?.fullName || 'Juan Dela Cruz',
+      phone: currentBike?.driverPhone || user?.phone || '0917-555-0101',
       bikeNumber: this.myBikeNumber
     };
 
+    this.lastSeenIncomingBooking = null;
     this.stateService.driverRespondBooking(booking.id, driverInfo, 'reject');
     this.apiService.respondBookingXampp(
       booking.id,
@@ -521,7 +748,7 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
       'reject'
     ).subscribe();
 
-    this.displayToast('Tinanggihan ang request. Inililipat sa ibang driver.');
+    this.displayToast(`Tinanggihan ng ${this.myBikeNumber} ang request. Nananatiling bukas sa ibang available na pedicab.`);
   }
 
   public advanceBookingStatus(booking: BookingRequest, newStatus: BookingStatus): void {
@@ -529,20 +756,37 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
     this.apiService.updateTripStatusXampp(booking.id, newStatus).subscribe();
 
     if (newStatus === 'driver_arriving') {
-      this.displayToast(`Papunta na sa sakayan ni ${booking.studentName} (${booking.pickupName})`);
+      this.displayToast(
+        this.isFil
+          ? `Papunta na sa sakayan ni ${booking.studentName} (${booking.pickupName})`
+          : `Heading to ${booking.studentName}'s pickup point (${booking.pickupName})`
+      );
     } else if (newStatus === 'driver_arrived') {
-      this.displayToast(`Nakarating na sa pickup point! Inabisuhan si ${booking.studentName}.`);
+      this.displayToast(
+        this.isFil
+          ? `Nakarating na sa pickup point! Inabisuhan si ${booking.studentName}.`
+          : `Arrived at pickup point! ${booking.studentName} has been notified.`
+      );
     } else if (newStatus === 'in_progress') {
-      this.displayToast(`Nakasakay na si ${booking.studentName}! Simulan ang biyahe patungong ${booking.destinationName}.`);
+      this.displayToast(
+        this.isFil
+          ? `Nakasakay na si ${booking.studentName}! Simulan ang biyahe patungong ${booking.destinationName}.`
+          : `${booking.studentName} is aboard! Trip started to ${booking.destinationName}.`
+      );
     } else if (newStatus === 'completed') {
       const fare = booking.fareAmount || ((booking.passengerCount || 1) * 10);
-      this.displayToast(`✅ Naibaba / Naihatid na si ${booking.studentName}! Nakolekta: ₱${fare}.00 CASH. Balik sa 4/4 ang available na upuan!`);
+      this.displayToast(
+        this.isFil
+          ? `✅ Naibaba / Naihatid na si ${booking.studentName}! Nakolekta: ₱${fare}.00 CASH. Balik sa 4/4 ang available na upuan!`
+          : `✅ Dropped off ${booking.studentName}! Collected: ₱${fare}.00 CASH. Reset to 4/4 open seats!`
+      );
       this.currentTab = 'dashboard';
     }
   }
 
   public dropOffBookingAction(booking: BookingRequest): void {
     this.advanceBookingStatus(booking, 'completed');
+    this.cdr.detectChanges();
   }
 
   public dropOffQueuePassengerAction(q: QueueEntry): void {
@@ -623,7 +867,7 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
 
   public incrementPassenger(): void {
     if (this.myBicycle.passengerCount >= this.myBicycle.maxCapacity) {
-      this.displayToast('Puno na ang kapasidad ng shuttle (4/4 pasahero)!');
+      this.displayToast('Puno na ang kapasidad ng pedicab (4/4 pasahero)!');
       return;
     }
     this.stateService.updatePassengerCount(this.myBikeNumber, 1);
@@ -752,13 +996,15 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
     if (this.simulationInterval) return;
 
     let step = 0;
-    // Campus loop coordinates inside NEUST Sumacab grounds
+    // Calibrated road centerline waypoints inside NEUST Sumacab grounds
     const waypoints = [
-      { lat: 15.449353, lng: 120.940410, heading: 180 }, // CICT (beside Physical Education / Gym)
-      { lat: 15.4463, lng: 120.9392, heading: 150 }, // Admin Plaza
-      { lat: 15.4458, lng: 120.9398, heading: 140 }, // Admin South
-      { lat: 15.4455, lng: 120.9406, heading: 160 }, // Banaba St East
-      { lat: 15.444889, lng: 120.940417, heading: 200 } // Trike Terminal
+      { lat: 15.444889, lng: 120.940417, heading: 335 }, // Main Gate (Mahogany Blvd & Banaba St)
+      { lat: 15.445750, lng: 120.940010, heading: 335 }, // Banaba St Mid
+      { lat: 15.446150, lng: 120.939830, heading: 25 },  // Banaba St & Malunggay Ave Y-Junction
+      { lat: 15.447200, lng: 120.940180, heading: 20 },  // Malunggay Ave & Narra Ave
+      { lat: 15.448450, lng: 120.940660, heading: 340 }, // Malunggay Ave North (COE / Gym)
+      { lat: 15.449353, lng: 120.940410, heading: 250 }, // CICT / Gym Road
+      { lat: 15.446868, lng: 120.939533, heading: 155 }  // Banaba St & Narra Ave (Architecture Stand)
     ];
 
     this.simulationInterval = setInterval(() => {
@@ -992,8 +1238,6 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
   }
 
   public displayToast(msg: string, type: 'trip' | 'queue' | 'system' | 'safety' | 'driver' = 'system'): void {
-    this.toastMessage = msg;
-    this.showToast = true;
     this.notificationService.showInAppToast('NEUST BikeGo', msg, type);
   }
 }

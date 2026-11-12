@@ -100,7 +100,6 @@
         <div class="pin-status-text">
           <strong>{{ customPickupPin.addressText }}</strong>
           <span class="coords-tag">
-            Lat: {{ customPickupPin.lat }} • Lng: {{ customPickupPin.lng }}
             <span class="geofence-tag" [class.geofence-valid]="customPickupPin.isInsideCampusBoundary" [class.geofence-invalid]="!customPickupPin.isInsideCampusBoundary">
               {{ customPickupPin.isInsideCampusBoundary ? '✓ Inside Campus Boundary' : '⚠️ Outside Permitted Campus' }}
             </span>
@@ -136,7 +135,7 @@
         class="base-map-img" 
         draggable="false" />
 
-      <!-- SVG Overlay for Shuttle Routes, Zones & Live Polyline -->
+      <!-- SVG Overlay for Pedicab Routes, Zones & Live Polyline -->
       <svg class="routes-svg-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
         <!-- Campus boundary outline -->
         <polygon 
@@ -271,10 +270,15 @@
   <div *ngIf="mapMode === 'leaflet'" class="leaflet-map-wrapper">
     <div #leafletContainer class="leaflet-map-canvas"></div>
 
-    <!-- Recenter Map Floating Action (Always available for quick recentering) -->
-    <button class="btn-map-recenter-float" (click)="recenterTracking()" title="Recenter View">
+    <!-- Recenter Map Floating Action (Always available for quick recentering / following pedicab) -->
+    <button
+      type="button"
+      class="btn-map-recenter-float"
+      [class.is-following]="isLiveTrackingActive() && !userInteractedWithTrackingMap"
+      (click)="recenterTracking()"
+      title="Recenter View">
       <ion-icon name="locate-outline"></ion-icon>
-      <span>{{ isLiveTrackingActive() ? 'Focus Pedicab' : 'Recenter' }}</span>
+      <span>{{ isLiveTrackingActive() ? (userInteractedWithTrackingMap ? 'Follow Pedicab' : 'Following Pedicab') : 'Recenter' }}</span>
     </button>
 
     <!-- Leaflet Map Floating Controls & Legend -->
@@ -340,23 +344,23 @@
           </div>
           <span class="tqb-driver">Driver: {{ qb.driverName }}</span>
         </div>
-        <button type="button" class="btn-tqb-select" (click)="onSelectShuttleFromDrawer(qb)">
+        <button *ngIf="allowBooking" type="button" class="btn-tqb-select" (click)="onSelectShuttleFromDrawer(qb)">
           {{ langService.currentLanguage === 'fil' ? 'Sakyan' : 'Select' }}
         </button>
       </div>
     </div>
 
     <ng-template #emptyTerminalHub>
-      <p class="drawer-station-desc">{{ langService.currentLanguage === 'fil' ? 'Walang nakaabang na trike sa pilahang ito ngayon. Tingnan ang mga nagrorondang trike sa mapa.' : 'No pedicabs are currently waiting at this stand. Check roaming shuttles on the map.' }}</p>
+      <p class="drawer-station-desc">{{ langService.currentLanguage === 'fil' ? 'Walang nakaabang na trike sa pilahang ito ngayon. Tingnan ang mga nagrorondang trike sa mapa.' : 'No pedicabs are currently waiting at this stand. Check roaming pedicabs on the map.' }}</p>
     </ng-template>
 
-    <button type="button" class="drawer-primary-btn" (click)="onBookFromTerminalHub(hub.accent)">
+    <button *ngIf="allowBooking" type="button" class="drawer-primary-btn" (click)="onBookFromTerminalHub(hub.accent)">
       <ion-icon name="navigate-outline"></ion-icon>
       <span>{{ langService.currentLanguage === 'fil' ? 'Mag-book Mula sa ' + hub.title : 'Book From ' + hub.title }}</span>
     </button>
   </div>
 
-  <!-- FLOATING BOTTOM CARD: Shuttle Info (Works in all Map Modes) -->
+  <!-- FLOATING BOTTOM CARD: Pedicab Info (Works in all Map Modes) -->
   <div class="floating-entity-drawer" *ngIf="activeBicycle">
     <button type="button" class="drawer-close-btn" (click)="closeFloatingCard()">
       <ion-icon name="close-outline"></ion-icon>
@@ -405,7 +409,8 @@
     </div>
 
     <!-- Action Button -->
-    <button 
+    <button
+      *ngIf="allowBooking"
       type="button"
       class="drawer-primary-btn"
       [disabled]="activeBicycle.status === 'full' || activeBicycle.status === 'maintenance' || activeBicycle.passengerCount >= activeBicycle.maxCapacity"
@@ -454,7 +459,7 @@
       </ion-header>
 
       <ion-content class="ion-padding">
-        <h4 class="legend-section-title">Shuttle Capacity & Status</h4>
+        <h4 class="legend-section-title">Pedicab Capacity & Status</h4>
         <div class="legend-item">
           <div class="legend-color-swatch swatch-avail"></div>
           <div>
@@ -466,7 +471,7 @@
           <div class="legend-color-swatch swatch-almost"></div>
           <div>
             <strong>Almost Full (Amber)</strong>
-            <p>Only 1 seat remains on this shuttle.</p>
+            <p>Only 1 seat remains on this pedicab.</p>
           </div>
         </div>
         <div class="legend-item">

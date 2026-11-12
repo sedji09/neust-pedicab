@@ -1,3 +1,13 @@
 <ion-app>
+  <div *ngIf="showSplash" class="bikego-splash-overlay" [class.is-hiding]="isHidingSplash">
+    <div class="splash-logo-ring">
+      <img src="assets/images/BikeGO_logo.png" alt="NEUST BikeGo Logo" class="splash-logo-img" />
+    </div>
+    <h1 class="splash-title">NEUST <span>BikeGo</span></h1>
+    <p class="splash-sub">Sumacab Campus Transit</p>
+    <div class="splash-loader-track">
+      <div class="splash-loader-bar"></div>
+    </div>
+  </div>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>
