@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { ChatMessage, BookingRequest } from '../models/models';
 import { NotificationService } from './notification.service';
 import { LanguageService } from './language.service';
+import { ApiService } from './api.service';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,8 @@ export class ChatService {
 
   constructor(
     private notificationService: NotificationService,
-    private languageService: LanguageService
+    private languageService: LanguageService,
+    private apiService: ApiService
   ) {
     this.initMessages();
 
@@ -91,14 +93,76 @@ export class ChatService {
     return this.messagesSubject.value;
   }
 
-  public getMessagesForBooking(bookingId?: string): ChatMessage[] {
+  public syncRemoteMessages(
+    remoteMessages: any[],
+    bookingNumber?: string,
+    localBookingId?: string,
+    myRole?: 'student' | 'driver'
+  ): void {
+    if (!remoteMessages || !Array.isArray(remoteMessages)) return;
     this.syncMessagesFromStorage();
-    if (!bookingId) return [];
-    return this.currentMessages.filter(m => m.bookingId === bookingId);
+    const current = [...this.currentMessages];
+    let hasNew = false;
+    for (const rm of remoteMessages) {
+      const existingIdx = current.findIndex(m =>
+        m.id === rm.id ||
+        (m.message === rm.message && m.senderRole === rm.senderRole)
+      );
+      if (existingIdx === -1) {
+        const msgObj: ChatMessage = {
+          id: rm.id,
+          bookingId: localBookingId || rm.bookingId,
+          bookingNumber: rm.bookingNumber || bookingNumber,
+          senderId: rm.senderId,
+          senderName: rm.senderName,
+          senderRole: rm.senderRole,
+          receiverId: '',
+          receiverName: '',
+          message: rm.message,
+          timestamp: rm.timestamp,
+          isRead: false
+        };
+        current.push(msgObj);
+        hasNew = true;
+
+        // Notify user if message came from the other side
+        if (myRole && rm.senderRole && rm.senderRole !== myRole) {
+          const isFil = this.languageService.currentLanguage === 'fil';
+          this.notificationService.notify(
+            isFil ? `💬 Mensahe mula kay ${rm.senderName}` : `💬 Message from ${rm.senderName}`,
+            rm.message,
+            'driver'
+          );
+        }
+      } else {
+        // Ensure local message also carries matching bookingNumber and bookingId so both devices match
+        const existing = current[existingIdx];
+        if (!existing.bookingNumber && (rm.bookingNumber || bookingNumber)) {
+          current[existingIdx] = {
+            ...existing,
+            bookingNumber: rm.bookingNumber || bookingNumber,
+            bookingId: existing.bookingId || localBookingId || rm.bookingId
+          };
+          hasNew = true;
+        }
+      }
+    }
+    if (hasNew) {
+      this.persistMessages(current);
+    }
   }
 
-  public getLatestMessageForBooking(bookingId?: string): ChatMessage | undefined {
-    const list = this.getMessagesForBooking(bookingId);
+  public getMessagesForBooking(bookingId?: string, bookingNumber?: string): ChatMessage[] {
+    this.syncMessagesFromStorage();
+    if (!bookingId && !bookingNumber) return [];
+    return this.currentMessages.filter(m =>
+      (bookingId && m.bookingId === bookingId) ||
+      (bookingNumber && (m as any).bookingNumber === bookingNumber)
+    );
+  }
+
+  public getLatestMessageForBooking(bookingId?: string, bookingNumber?: string): ChatMessage | undefined {
+    const list = this.getMessagesForBooking(bookingId, bookingNumber);
     return list.length ? list[list.length - 1] : undefined;
   }
 
@@ -108,7 +172,10 @@ export class ChatService {
   public initBookingWelcome(booking: BookingRequest): void {
     this.syncMessagesFromStorage();
     const list = [...this.currentMessages];
-    const existingWelcome = list.find(m => m.bookingId === booking.id);
+    const existingWelcome = list.find(m =>
+      m.bookingId === booking.id ||
+      (booking.bookingNumber && (m as any).bookingNumber === booking.bookingNumber)
+    );
     if (!existingWelcome) {
       const isFil = this.languageService.currentLanguage === 'fil';
       const driverName = booking.assignedDriverName || 'Driver';
@@ -120,6 +187,7 @@ export class ChatService {
       const welcomeMsg: ChatMessage = {
         id: 'msg-' + Date.now(),
         bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
         senderId: booking.assignedDriverId || 'driver-001',
         senderName: driverName,
         senderRole: 'driver',
@@ -131,6 +199,16 @@ export class ChatService {
       };
       list.push(welcomeMsg);
       this.persistMessages(list);
+
+      // Save to XAMPP MySQL backend
+      this.apiService.sendChatMessageXampp({
+        bookingId: booking.id,
+        bookingNumber: booking.bookingNumber,
+        senderId: booking.assignedDriverId || 'driver-001',
+        senderName: driverName,
+        senderRole: 'driver',
+        message: welcomeText
+      }).subscribe();
 
       // Trigger notification for student
       this.notificationService.notify(
@@ -157,6 +235,7 @@ export class ChatService {
     const newMsg: ChatMessage = {
       id: 'msg-' + Date.now(),
       bookingId: booking?.id,
+      bookingNumber: booking?.bookingNumber,
       senderId: studentId,
       senderName: studentName,
       senderRole: 'student',
@@ -168,6 +247,16 @@ export class ChatService {
     };
     list.push(newMsg);
     this.persistMessages(list);
+
+    // Save to XAMPP MySQL backend
+    this.apiService.sendChatMessageXampp({
+      bookingId: booking?.id,
+      bookingNumber: booking?.bookingNumber,
+      senderId: studentId,
+      senderName: studentName,
+      senderRole: 'student',
+      message: text.trim()
+    }).subscribe();
   }
 
   /**
@@ -185,6 +274,7 @@ export class ChatService {
     const newMsg: ChatMessage = {
       id: 'msg-' + Date.now(),
       bookingId: booking?.id,
+      bookingNumber: booking?.bookingNumber,
       senderId: driverUser?.id || booking?.assignedDriverId || 'driver-001',
       senderName: driverUser?.fullName || booking?.assignedDriverName || 'Driver',
       senderRole: 'driver',
@@ -196,6 +286,16 @@ export class ChatService {
     };
     list.push(newMsg);
     this.persistMessages(list);
+
+    // Save to XAMPP MySQL backend
+    this.apiService.sendChatMessageXampp({
+      bookingId: booking?.id,
+      bookingNumber: booking?.bookingNumber,
+      senderId: newMsg.senderId,
+      senderName: newMsg.senderName,
+      senderRole: 'driver',
+      message: text.trim()
+    }).subscribe();
 
     // Alert student with chime and notification
     const isFil = this.languageService.currentLanguage === 'fil';

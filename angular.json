@@ -91,26 +91,6 @@
           "options": {
             "buildTarget": "app:build"
           }
-        },
-        "test": {
-          "builder": "@angular/build:unit-test",
-          "options": {
-            "buildTarget": "::development",
-            "runnerConfig": "vitest.config.mts",
-            "setupFiles": ["src/test-setup.ts"],
-            "tsConfig": "tsconfig.spec.json"
-          }
-        },
-        "lint": {
-          "builder": "@angular-eslint/builder:lint",
-          "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html",
-              "e2e/**/*.ts",
-              "playwright.config.ts"
-            ]
-          }
         }
       }
     }

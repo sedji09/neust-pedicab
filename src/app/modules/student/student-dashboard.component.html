@@ -276,6 +276,11 @@
         <h2>{{ langService.t('book.title') }}</h2>
         <p>{{ langService.t('book.subtitle') }}</p>
       </div>
+      <!-- Direct Quick Chat button in Solo Header -->
+      <button *ngIf="isDriverAssigned" type="button" class="btn-solo-chat-hdr" (click)="openMessengerChat(); selectTab('messages')" [title]="langService.currentLanguage === 'fil' ? 'I-chat ang Driver' : 'Chat with Driver'">
+        <ion-icon name="chatbubble-ellipses"></ion-icon>
+        <span class="hdr-unread-dot" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+      </button>
     </div>
 
     <!-- ==================== REAL-TIME DROP-OFF / COMPLETED TRIP CARD ==================== -->
@@ -288,6 +293,34 @@
           ? 'Naibaba na ng driver ang iyong sakay. Ang ' + doneBooking.assignedBikeNumber + ' ay balik na sa 4/4 Available na Upuan.' 
           : 'Your ride is complete! ' + doneBooking.assignedBikeNumber + ' is now reset to 4/4 Available Seats.' }}
       </p>
+
+      <!-- 5-Stage Stepper (100% Complete) -->
+      <div class="trip-stepper cdc-stepper" style="margin-bottom: 14px;">
+        <div class="step-item step-done">
+          <div class="step-dot">✓</div>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Tinanggap' : 'Accepted' }}</span>
+        </div>
+        <div class="step-line line-done"></div>
+        <div class="step-item step-done">
+          <div class="step-dot">✓</div>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Paparating' : 'Arriving' }}</span>
+        </div>
+        <div class="step-line line-done"></div>
+        <div class="step-item step-done">
+          <div class="step-dot">✓</div>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Nasa Sakayan' : 'Arrived' }}</span>
+        </div>
+        <div class="step-line line-done"></div>
+        <div class="step-item step-done">
+          <div class="step-dot">✓</div>
+          <span>{{ langService.currentLanguage === 'fil' ? 'On Trip' : 'On Trip' }}</span>
+        </div>
+        <div class="step-line line-done"></div>
+        <div class="step-item step-active step-done">
+          <div class="step-dot" style="background: #10b981; color: white;">✓</div>
+          <span style="color: #059669; font-weight: 700;">{{ langService.currentLanguage === 'fil' ? 'Nahatid Na' : 'Dropped Off' }}</span>
+        </div>
+      </div>
 
       <div class="cdc-summary-box">
         <div class="cdc-row">
@@ -402,7 +435,7 @@
     </div>
 
     <!-- ==================== JOYRIDE STATE 3: DRIVER ACCEPTED & TRIP TRACKING ==================== -->
-    <div *ngIf="myActiveBooking && (myActiveBooking.status === 'accepted' || myActiveBooking.status === 'driver_arriving' || myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress')" class="active-trip-container">
+    <div *ngIf="myActiveBooking && (myActiveBooking.status === 'accepted' || myActiveBooking.status === 'driver_arriving' || myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress' || myActiveBooking.status === 'completed')" class="active-trip-container">
       <!-- Status Banner -->
       <div class="trip-status-banner" [ngClass]="'banner-' + myActiveBooking.status">
         <div class="banner-pulse-dot"></div>
@@ -410,31 +443,41 @@
           <strong *ngIf="myActiveBooking.status === 'accepted'">{{ langService.t('tracking.accepted_banner') }}</strong>
           <strong *ngIf="myActiveBooking.status === 'driver_arriving'">{{ langService.t('tracking.heading_banner') }}</strong>
           <strong *ngIf="myActiveBooking.status === 'driver_arrived'">{{ langService.t('tracking.arrived_banner') }}</strong>
-          <strong *ngIf="myActiveBooking.status === 'in_progress'">{{ langService.t('tracking.in_progress_banner') }}</strong>
+          <strong *ngIf="myActiveBooking.status === 'in_progress'">{{ langService.currentLanguage === 'fil' ? '🚀 Bumabyahe Na (On Trip)' : '🚀 On Trip to Destination' }}</strong>
+          <strong *ngIf="myActiveBooking.status === 'completed'">{{ langService.currentLanguage === 'fil' ? '✅ Naihatid Na (Dropped Off)' : '✅ Dropped Off' }}</strong>
           <span>{{ myActiveBooking.bookingNumber }}</span>
         </div>
       </div>
 
-      <!-- Stepper Indicator -->
+      <!-- Stepper Indicator (5-Stage Complete Journey) -->
       <div class="trip-stepper">
         <div class="step-item" [class.step-active]="myActiveBooking.status === 'accepted'" [class.step-done]="myActiveBooking.status !== 'accepted'">
           <div class="step-dot">1</div>
-          <span>Accepted</span>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Tinanggap' : 'Accepted' }}</span>
         </div>
         <div class="step-line" [class.line-done]="myActiveBooking.status !== 'accepted'"></div>
-        <div class="step-item" [class.step-active]="myActiveBooking.status === 'driver_arriving'" [class.step-done]="myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress'">
+
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'driver_arriving'" [class.step-done]="myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress' || myActiveBooking.status === 'completed'">
           <div class="step-dot">2</div>
-          <span>Arriving</span>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Paparating' : 'Arriving' }}</span>
         </div>
-        <div class="step-line" [class.line-done]="myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress'"></div>
-        <div class="step-item" [class.step-active]="myActiveBooking.status === 'driver_arrived'" [class.step-done]="myActiveBooking.status === 'in_progress'">
+        <div class="step-line" [class.line-done]="myActiveBooking.status === 'driver_arrived' || myActiveBooking.status === 'in_progress' || myActiveBooking.status === 'completed'"></div>
+
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'driver_arrived'" [class.step-done]="myActiveBooking.status === 'in_progress' || myActiveBooking.status === 'completed'">
           <div class="step-dot">3</div>
-          <span>Arrived</span>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Nasa Sakayan' : 'Arrived' }}</span>
         </div>
-        <div class="step-line" [class.line-done]="myActiveBooking.status === 'in_progress'"></div>
-        <div class="step-item" [class.step-active]="myActiveBooking.status === 'in_progress'">
+        <div class="step-line" [class.line-done]="myActiveBooking.status === 'in_progress' || myActiveBooking.status === 'completed'"></div>
+
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'in_progress'" [class.step-done]="myActiveBooking.status === 'completed'">
           <div class="step-dot">4</div>
-          <span>On Trip</span>
+          <span>{{ langService.currentLanguage === 'fil' ? 'On Trip' : 'On Trip' }}</span>
+        </div>
+        <div class="step-line" [class.line-done]="myActiveBooking.status === 'completed'"></div>
+
+        <div class="step-item" [class.step-active]="myActiveBooking.status === 'completed'" [class.step-done]="myActiveBooking.status === 'completed'">
+          <div class="step-dot">5</div>
+          <span>{{ langService.currentLanguage === 'fil' ? 'Nahatid Na' : 'Dropped Off' }}</span>
         </div>
       </div>
 
@@ -445,7 +488,7 @@
         </div>
         <div class="arrived-content">
           <h4>{{ langService.currentLanguage === 'fil' ? '📍 Nandito na si Kuya Driver sa Sakayan!' : '📍 Driver Has Arrived at Pickup!' }}</h4>
-          <p>{{ langService.currentLanguage === 'fil' ? 'Nasa iyong pickup point na ang pedicab. Maaari ka nang sumakay!' : 'Your pedicab pedicab is waiting at your pickup point. Please board now!' }}</p>
+          <p>{{ langService.currentLanguage === 'fil' ? 'Nasa iyong pickup point na ang pedicab. Maaari ka nang sumakay!' : 'Your pedicab is waiting at your pickup point. Please board now!' }}</p>
         </div>
       </div>
 
@@ -469,6 +512,26 @@
             <span class="chat-mini-badge" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
           </button>
         </div>
+      </div>
+
+      <!-- Prominent Chat with Driver Action Bar -->
+      <div class="trip-chat-cta-wrap">
+        <button type="button" class="btn-trip-chat-cta" (click)="openMessengerChat(); selectTab('messages')">
+          <div class="tc-left">
+            <div class="tc-icon-wrap">
+              <ion-icon name="chatbubble-ellipses"></ion-icon>
+              <span class="tc-unread-dot" *ngIf="unreadMessagesCount > 0"></span>
+            </div>
+            <div class="tc-info">
+              <strong>{{ langService.currentLanguage === 'fil' ? 'I-chat si Kuya Driver' : 'Chat with Driver' }}</strong>
+              <span>{{ activeBookingMessages.length ? (activeBookingMessages[activeBookingMessages.length - 1].message) : (langService.currentLanguage === 'fil' ? 'Mensahe para sa sakayan o direksyon' : 'Tap to message driver') }}</span>
+            </div>
+          </div>
+          <div class="tc-right">
+            <span class="tc-badge" *ngIf="unreadMessagesCount > 0">{{ unreadMessagesCount }}</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </button>
       </div>
 
       <!-- Live Campus Map Tracking Preview (GrabFood Style with Real-time Driver Line) -->

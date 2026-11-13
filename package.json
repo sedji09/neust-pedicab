@@ -9,15 +9,8 @@
     "dev": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "lint": "npm run eslint && npm run typecheck:e2e && npm run prettier -- --check",
-    "lint:fix": "npm run eslint -- --fix && npm run prettier -- --write",
-    "eslint": "ng lint --max-warnings 0",
-    "prettier": "prettier \"**/*.{ts,html}\"",
-    "typecheck:e2e": "tsc -p tsconfig.e2e.json",
-    "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "ng test --no-watch",
-    "test:unit:watch": "ng test --watch",
-    "test:e2e": "playwright test"
+    "sync": "ng build && npx cap sync android",
+    "build:apk": "ng build && npx cap sync android && powershell -Command \"$env:JAVA_HOME='C:\\Program Files\\Android\\Android Studio\\jbr'; Set-Location android; .\\gradlew.bat assembleDebug\""
   },
   "private": true,
   "dependencies": {

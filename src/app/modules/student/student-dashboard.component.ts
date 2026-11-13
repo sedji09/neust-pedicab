@@ -296,6 +296,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   public activeTrackingSession: RouteTrackingSession | null = null;
   public recentlyCompletedBooking: BookingRequest | null = null;
   private lastKnownActiveBookingId: string | null = null;
+  private lastKnownActiveBookingNumber: string | null = null;
 
   // Quick destination/pickup filter search
   public destinationSearchText = '';
@@ -363,6 +364,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private lastKnownBookingStatus: string | null = null;
+  private notifiedStatusKeys = new Set<string>();
 
   constructor(
     public authService: AuthService,
@@ -415,12 +417,17 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           }
           this.lastKnownBookingStatus = active.status;
           this.lastKnownActiveBookingId = active.id;
+          this.lastKnownActiveBookingNumber = active.bookingNumber;
           this.recentlyCompletedBooking = null;
-        } else if (this.lastKnownActiveBookingId) {
-          const justFinished = bookings.find(b => b.id === this.lastKnownActiveBookingId && b.status === 'completed');
+        } else if (this.lastKnownActiveBookingId || this.lastKnownActiveBookingNumber) {
+          const justFinished = bookings.find(
+            b => (b.id === this.lastKnownActiveBookingId || (this.lastKnownActiveBookingNumber && b.bookingNumber === this.lastKnownActiveBookingNumber)) &&
+                 b.status === 'completed'
+          );
           if (justFinished) {
             this.recentlyCompletedBooking = justFinished;
             this.lastKnownActiveBookingId = null;
+            this.lastKnownActiveBookingNumber = null;
             this.lastKnownBookingStatus = null;
             const isFil = this.langService.currentLanguage === 'fil';
             this.notificationService.notify(
@@ -508,25 +515,43 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
     const locs = this.stateService.getStateSnapshot().locations;
     this.customPickupPin = this.pickupService.buildPickupPin(15.444889, 120.940417, locs);
 
-    // Poll XAMPP backend every 2 seconds for cross-device booking & live driver GPS updates
+    // Poll XAMPP backend every 1.5 seconds for cross-device booking & live driver GPS updates
     this.xamppPollInterval = setInterval(() => {
       const active = this.myActiveBooking;
-      if (!active || this.cancelledBookingIds.has(active.id)) return;
+      const studentId = this.authService.currentUser?.id || 'student-001';
+      if (active && this.cancelledBookingIds.has(active.id)) return;
 
-      this.apiService.getBookingStatusXampp(active.id).subscribe(res => {
-        if (this.cancelledBookingIds.has(active.id) || this.myActiveBooking?.id !== active.id) return;
+      this.apiService.getBookingStatusXampp(active?.id || '', studentId, active?.bookingNumber).subscribe(res => {
         if (res.success && res.booking) {
-          this.stateService.syncRemoteBooking(res.booking);
+          if (this.cancelledBookingIds.has(res.booking.id)) return;
+          this.stateService.syncRemoteBooking(res.booking, active?.id);
           this.cdr.detectChanges();
         }
       });
 
+      // Poll real-time chat messages between passenger and driver
+      const chatBooking = active || this.recentlyCompletedBooking;
+      if (chatBooking) {
+        this.apiService.getChatMessagesXampp(chatBooking.id, chatBooking.bookingNumber).subscribe(chatRes => {
+          if (chatRes.success && chatRes.messages?.length) {
+            this.chatService.syncRemoteMessages(
+              chatRes.messages,
+              chatBooking.bookingNumber,
+              chatBooking.id,
+              'student'
+            );
+            this.cdr.detectChanges();
+          }
+        });
+      }
+
       if (
-        active.status === 'driver_arriving' ||
-        active.status === 'driver_arrived' ||
-        active.status === 'in_progress'
+        active &&
+        (active.status === 'driver_arriving' ||
+         active.status === 'driver_arrived' ||
+         active.status === 'in_progress')
       ) {
-        this.apiService.getLiveTrackingXampp(active.id, active.studentId).subscribe(trackRes => {
+        this.apiService.getLiveTrackingXampp(active.id, active.studentId || studentId).subscribe(trackRes => {
           const driver = trackRes?.booking?.driver;
           if (trackRes?.status === 'success' && driver?.lat && driver?.lng) {
             const bikeNo = driver.bike_number || active.assignedBikeNumber;
@@ -542,7 +567,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
           }
         });
       }
-    }, 2000);
+    }, 1500);
   }
 
   ngOnDestroy(): void {
@@ -766,11 +791,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   public isMessengerOpen: boolean = false;
 
   public get isDriverAssigned(): boolean {
-    return !!this.myActiveBooking && (
-      this.myActiveBooking.status === 'accepted' ||
-      this.myActiveBooking.status === 'driver_arriving' ||
-      this.myActiveBooking.status === 'driver_arrived' ||
-      this.myActiveBooking.status === 'in_progress'
+    const booking = this.myActiveBooking || this.recentlyCompletedBooking;
+    return !!booking && (
+      booking.status === 'accepted' ||
+      booking.status === 'driver_arriving' ||
+      booking.status === 'driver_arrived' ||
+      booking.status === 'in_progress' ||
+      booking.status === 'completed'
     );
   }
 
@@ -796,11 +823,13 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   public get activeBookingMessages() {
-    return this.chatService.getMessagesForBooking(this.myActiveBooking?.id);
+    const bk = this.myActiveBooking || this.recentlyCompletedBooking;
+    return this.chatService.getMessagesForBooking(bk?.id, bk?.bookingNumber);
   }
 
   public get latestDriverMessage() {
-    return this.chatService.getLatestMessageForBooking(this.myActiveBooking?.id);
+    const bk = this.myActiveBooking || this.recentlyCompletedBooking;
+    return this.chatService.getLatestMessageForBooking(bk?.id, bk?.bookingNumber);
   }
 
   public get unreadMessagesCount(): number {
@@ -1216,6 +1245,14 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
   }
 
   private handleStudentBookingStatusTransition(booking: BookingRequest, oldStatus: string, newStatus: string): void {
+    const notifyKey = `${booking.id}_${newStatus}`;
+    const altNotifyKey = booking.bookingNumber ? `${booking.bookingNumber}_${newStatus}` : notifyKey;
+    if (this.notifiedStatusKeys.has(notifyKey) || this.notifiedStatusKeys.has(altNotifyKey)) {
+      return;
+    }
+    this.notifiedStatusKeys.add(notifyKey);
+    this.notifiedStatusKeys.add(altNotifyKey);
+
     const isFil = this.langService.currentLanguage === 'fil';
     if (newStatus === 'driver_arrived') {
       // Driver arrived at student pickup location: Special 4-tone arrival chime + strong double vibration pattern
@@ -1230,6 +1267,7 @@ export class StudentDashboardComponent implements OnInit, OnDestroy {
         'arrival'
       );
     } else if (newStatus === 'driver_arriving' || newStatus === 'accepted') {
+      this.chatService.initBookingWelcome(booking);
       this.notificationService.notify(
         isFil ? '🚴 Tinanggap ang Iyong Booking!' : '🚴 Driver Accepted Your Ride!',
         isFil

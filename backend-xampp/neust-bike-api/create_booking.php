@@ -51,9 +51,9 @@ if ($existing) {
     exit();
 }
 
-// Generate unique booking number
-$bookingUid = 'bk-' . bin2hex(random_bytes(6));
-$bookingNumber = 'BK-' . date('Ymd') . '-' . rand(100, 999);
+// Use client's booking id and number if provided to maintain 100% ID sync across devices, or generate new ones
+$bookingUid = !empty($data['id']) ? trim($data['id']) : ('bk-' . bin2hex(random_bytes(6)));
+$bookingNumber = !empty($data['bookingNumber']) ? trim($data['bookingNumber']) : ('BK-' . date('Ymd') . '-' . rand(100, 999));
 
 // Broadcast to ALL online drivers whose pedicab has >= $passengerCount available seats (Paunahan / First-Come-First-Served)
 $targetDriverId = null;

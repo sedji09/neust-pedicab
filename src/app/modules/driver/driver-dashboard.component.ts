@@ -262,9 +262,21 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
             }
           });
         } else {
-          this.apiService.getBookingStatusXampp(active.id).subscribe(res => {
+          this.apiService.getBookingStatusXampp(active.id, active.studentId, active.bookingNumber).subscribe(res => {
             if (res.success && res.booking) {
-              this.stateService.syncRemoteBooking(res.booking);
+              this.stateService.syncRemoteBooking(res.booking, active.id);
+              this.cdr.detectChanges();
+            }
+          });
+
+          this.apiService.getChatMessagesXampp(active.id, active.bookingNumber).subscribe(chatRes => {
+            if (chatRes.success && chatRes.messages?.length) {
+              this.chatService.syncRemoteMessages(
+                chatRes.messages,
+                active.bookingNumber,
+                active.id,
+                'driver'
+              );
               this.cdr.detectChanges();
             }
           });
@@ -752,8 +764,8 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
   }
 
   public advanceBookingStatus(booking: BookingRequest, newStatus: BookingStatus): void {
-    this.stateService.updateBookingStatus(booking.id, newStatus);
-    this.apiService.updateTripStatusXampp(booking.id, newStatus).subscribe();
+    this.stateService.updateBookingStatus(booking.id, newStatus, booking.bookingNumber);
+    this.apiService.updateTripStatusXampp(booking.id, newStatus, booking.bookingNumber).subscribe();
 
     if (newStatus === 'driver_arriving') {
       this.displayToast(
@@ -813,12 +825,27 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
 
   // --- Driver Chat Methods ---
   public get activeBookingMessages(): ChatMessage[] {
-    return this.chatService.getMessagesForBooking(this.myActiveBooking?.id);
+    return this.chatService.getMessagesForBooking(
+      this.myActiveBooking?.id,
+      this.myActiveBooking?.bookingNumber
+    );
+  }
+
+  public get latestPassengerMessage(): ChatMessage | undefined {
+    return this.chatService.getLatestMessageForBooking(
+      this.myActiveBooking?.id,
+      this.myActiveBooking?.bookingNumber
+    );
   }
 
   public get unreadStudentMessagesCount(): number {
+    const bk = this.myActiveBooking;
+    if (!bk) return 0;
     return this.chatService.currentMessages.filter(
-      m => m.bookingId === this.myActiveBooking?.id && m.senderRole === 'student' && !m.isRead
+      m =>
+        (m.bookingId === bk.id || (bk.bookingNumber && m.bookingNumber === bk.bookingNumber)) &&
+        m.senderRole === 'student' &&
+        !m.isRead
     ).length;
   }
 
@@ -1049,6 +1076,18 @@ export class DriverDashboardComponent implements OnInit, OnDestroy {
 
     // Detect Designated Zone Entry
     this.checkZoneProximity(this.liveLat, this.liveLng);
+
+    // Auto-detect arrival at passenger pickup pin point (within 35m)
+    if (this.myActiveBooking && (this.myActiveBooking.status === 'accepted' || this.myActiveBooking.status === 'driver_arriving')) {
+      const pLat = this.myActiveBooking.pickupLat;
+      const pLng = this.myActiveBooking.pickupLng;
+      if (pLat && pLng) {
+        const dist = this.bicycleFinder.calculateHaversineDistance(this.liveLat, this.liveLng, pLat, pLng);
+        if (dist <= 35) {
+          this.advanceBookingStatus(this.myActiveBooking, 'driver_arrived');
+        }
+      }
+    }
   }
 
   private checkZoneProximity(lat: number, lng: number): void {

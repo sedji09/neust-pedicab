@@ -99,10 +99,10 @@ export class ApiService {
     );
   }
 
-  public getBookingStatusXampp(bookingId: string, studentId?: string): Observable<{ success: boolean; booking?: BookingRequest }> {
-    const qs = studentId
-      ? `id=${encodeURIComponent(bookingId)}&studentId=${encodeURIComponent(studentId)}`
-      : `id=${encodeURIComponent(bookingId)}`;
+  public getBookingStatusXampp(bookingId: string, studentId?: string, bookingNumber?: string): Observable<{ success: boolean; booking?: BookingRequest }> {
+    let qs = `id=${encodeURIComponent(bookingId || '')}`;
+    if (studentId) qs += `&studentId=${encodeURIComponent(studentId)}`;
+    if (bookingNumber) qs += `&bookingNumber=${encodeURIComponent(bookingNumber)}`;
     const url = `${this.getApiBaseUrl()}/get_booking_status.php?${qs}`;
     return this.http.get<{ success: boolean; booking?: BookingRequest }>(url).pipe(
       catchError(err => of({ success: false }))
@@ -137,13 +137,37 @@ export class ApiService {
     );
   }
 
-  public updateTripStatusXampp(bookingId: string, status: BookingStatus): Observable<{ success: boolean; message: string; status?: BookingStatus }> {
+  public updateTripStatusXampp(bookingId: string, status: BookingStatus, bookingNumber?: string): Observable<{ success: boolean; message: string; status?: BookingStatus }> {
     const url = `${this.getApiBaseUrl()}/update_trip_status.php`;
     return this.http.post<{ success: boolean; message: string; status?: BookingStatus }>(url, {
       bookingId,
+      bookingNumber,
       status
     }).pipe(
       catchError(err => of({ success: false, message: 'Network error or backend unreachable' }))
+    );
+  }
+
+  // --- Real-Time Chat APIs for Two-Phone Communication ---
+  public sendChatMessageXampp(payload: {
+    bookingId?: string;
+    bookingNumber?: string;
+    senderId: string;
+    senderName: string;
+    senderRole: 'student' | 'driver';
+    message: string;
+  }): Observable<{ success: boolean; message: string; chat?: any }> {
+    const url = `${this.getApiBaseUrl()}/send_chat_message.php`;
+    return this.http.post<{ success: boolean; message: string; chat?: any }>(url, payload).pipe(
+      catchError(err => of({ success: false, message: 'Chat network error' }))
+    );
+  }
+
+  public getChatMessagesXampp(bookingId?: string, bookingNumber?: string): Observable<{ success: boolean; messages: any[] }> {
+    const qs = `bookingId=${encodeURIComponent(bookingId || '')}&bookingNumber=${encodeURIComponent(bookingNumber || '')}`;
+    const url = `${this.getApiBaseUrl()}/get_chat_messages.php?${qs}`;
+    return this.http.get<{ success: boolean; messages: any[] }>(url).pipe(
+      catchError(err => of({ success: false, messages: [] }))
     );
   }
 

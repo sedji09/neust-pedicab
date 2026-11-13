@@ -254,6 +254,7 @@ export interface AppNotification {
 export interface ChatMessage {
   id: string;
   bookingId?: string;
+  bookingNumber?: string;
   senderId: string;
   senderName: string;
   senderRole: 'student' | 'driver';

@@ -1,31 +1,52 @@
 <?php
 /**
  * NEUST BikeGo - Get Booking Status API
- * Endpoint: GET /neust-bike-api/get_booking_status.php?id=xxx or ?studentId=xxx
+ * Endpoint: GET /neust-bike-api/get_booking_status.php?id=xxx&bookingNumber=xxx&studentId=xxx
  */
 require_once __DIR__ . '/db_connect.php';
 
-$bookingUid = $_GET['id'] ?? null;
-$studentUid = $_GET['studentId'] ?? null;
+$bookingUid = trim($_GET['id'] ?? '');
+$bookingNumber = trim($_GET['bookingNumber'] ?? '');
+$studentUid = trim($_GET['studentId'] ?? '');
 
 $b = null;
-if ($bookingUid) {
-    $stmt = $pdo->prepare("SELECT * FROM bookings WHERE booking_uid = ? LIMIT 1");
-    $stmt->execute([$bookingUid]);
+if (!empty($bookingUid) || !empty($bookingNumber)) {
+    $stmt = $pdo->prepare("SELECT * FROM bookings WHERE booking_uid = ? OR booking_number = ? OR booking_uid = ? OR booking_number = ? LIMIT 1");
+    $stmt->execute([$bookingUid, $bookingUid, $bookingNumber, $bookingNumber]);
     $b = $stmt->fetch();
 }
-if (!$b && $studentUid) {
+
+// Fallback to student's latest active trip if not found or cancelled
+if ((!$b || $b['status'] === 'cancelled') && !empty($studentUid)) {
+    // 1. Try active trip in progress or arriving
     $stmt = $pdo->prepare("SELECT * FROM bookings WHERE student_uid = ? AND status NOT IN ('completed', 'cancelled') ORDER BY id DESC LIMIT 1");
     $stmt->execute([$studentUid]);
-    $b = $stmt->fetch();
+    $activeB = $stmt->fetch();
+    if ($activeB) {
+        $b = $activeB;
+    } else {
+        // 2. If no active trip, check for recently completed trip (last 30 mins) so passenger gets the drop-off notice!
+        $stmt2 = $pdo->prepare("SELECT * FROM bookings WHERE student_uid = ? AND status = 'completed' AND updated_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE) ORDER BY id DESC LIMIT 1");
+        $stmt2->execute([$studentUid]);
+        $compB = $stmt2->fetch();
+        if ($compB) {
+            $b = $compB;
+        }
+    }
 }
-if (!$bookingUid && !$studentUid) {
-    echo json_encode(['success' => false, 'message' => 'Provide booking id or studentId.']);
-    exit();
-}
+
 if (!$b) {
     echo json_encode(['success' => false, 'message' => 'No active booking found.']);
     exit();
+}
+
+// Fetch assigned driver avatar if available
+$driverPhoto = null;
+if (!empty($b['assigned_driver_id'])) {
+    $drvStmt = $pdo->prepare("SELECT avatar_url FROM users WHERE user_uid = ? LIMIT 1");
+    $drvStmt->execute([$b['assigned_driver_id']]);
+    $drvRow = $drvStmt->fetch();
+    $driverPhoto = $drvRow['avatar_url'] ?? null;
 }
 
 echo json_encode([
@@ -52,6 +73,7 @@ echo json_encode([
         'assignedDriverId' => $b['assigned_driver_id'],
         'assignedDriverName' => $b['assigned_driver_name'],
         'assignedDriverPhone' => $b['assigned_driver_phone'],
+        'assignedDriverPhoto' => $driverPhoto,
         'assignedBikeNumber' => $b['assigned_bike_number'],
         'targetDriverId' => $b['target_driver_id'],
         'requestExpiresAt' => $b['request_expires_at'] ? intval($b['request_expires_at']) : null,
@@ -59,4 +81,3 @@ echo json_encode([
         'updatedAt' => $b['updated_at']
     ]
 ]);
-

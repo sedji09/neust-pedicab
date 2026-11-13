@@ -95,11 +95,43 @@
           <div class="abh-status-pill" [ngClass]="'status-' + booking.status">
             <span *ngIf="booking.status === 'accepted'">{{ isFil ? '▶ PAPUNTA SA PICKUP' : '▶ EN ROUTE TO PICKUP' }}</span>
             <span *ngIf="booking.status === 'driver_arriving'">{{ isFil ? '🚗 PAPARATING SA SAKAYAN' : '🚗 ARRIVING AT PICKUP' }}</span>
-            <span *ngIf="booking.status === 'driver_arrived'">{{ isFil ? '📍 NASA SAKAYAN NA' : '📍 ARRIVED AT PICKUP' }}</span>
-            <span *ngIf="booking.status === 'in_progress'">{{ isFil ? '🚀 BUMABYAHE NA PATUNGO SA DESTINASYON' : '🚀 IN TRANSIT TO DESTINATION' }}</span>
-            <span *ngIf="booking.status === 'completed'">{{ isFil ? '✅ NATAPOS NA ANG BIYAHE' : '✅ TRIP COMPLETED' }}</span>
+            <span *ngIf="booking.status === 'driver_arrived'">{{ isFil ? '📍 NASA SAKAYAN NA (ARRIVED)' : '📍 ARRIVED AT PICKUP' }}</span>
+            <span *ngIf="booking.status === 'in_progress'">{{ isFil ? '🚀 BUMABYAHE NA (ON TRIP)' : '🚀 IN TRANSIT (ON TRIP)' }}</span>
+            <span *ngIf="booking.status === 'completed'">{{ isFil ? '✅ NAIHATID NA (DROPPED OFF)' : '✅ DROPPED OFF (COMPLETED)' }}</span>
           </div>
           <span class="abh-code">{{ booking.bookingNumber }}</span>
+        </div>
+
+        <!-- Stepper Indicator (5-Stage Complete Journey for Driver) -->
+        <div class="trip-stepper driver-stepper">
+          <div class="step-item" [class.step-active]="booking.status === 'accepted'" [class.step-done]="booking.status !== 'accepted'">
+            <div class="step-dot">1</div>
+            <span>{{ isFil ? 'Tinanggap' : 'Accepted' }}</span>
+          </div>
+          <div class="step-line" [class.line-done]="booking.status !== 'accepted'"></div>
+
+          <div class="step-item" [class.step-active]="booking.status === 'driver_arriving'" [class.step-done]="booking.status === 'driver_arrived' || booking.status === 'in_progress' || booking.status === 'completed'">
+            <div class="step-dot">2</div>
+            <span>{{ isFil ? 'Paparating' : 'Arriving' }}</span>
+          </div>
+          <div class="step-line" [class.line-done]="booking.status === 'driver_arrived' || booking.status === 'in_progress' || booking.status === 'completed'"></div>
+
+          <div class="step-item" [class.step-active]="booking.status === 'driver_arrived'" [class.step-done]="booking.status === 'in_progress' || booking.status === 'completed'">
+            <div class="step-dot">3</div>
+            <span>{{ isFil ? 'Nasa Sakayan' : 'Arrived' }}</span>
+          </div>
+          <div class="step-line" [class.line-done]="booking.status === 'in_progress' || booking.status === 'completed'"></div>
+
+          <div class="step-item" [class.step-active]="booking.status === 'in_progress'" [class.step-done]="booking.status === 'completed'">
+            <div class="step-dot">4</div>
+            <span>{{ isFil ? 'On Trip' : 'On Trip' }}</span>
+          </div>
+          <div class="step-line" [class.line-done]="booking.status === 'completed'"></div>
+
+          <div class="step-item" [class.step-active]="booking.status === 'completed'" [class.step-done]="booking.status === 'completed'">
+            <div class="step-dot">5</div>
+            <span>{{ isFil ? 'Nahatid Na' : 'Dropped Off' }}</span>
+          </div>
         </div>
 
         <!-- Passenger Details & Quick Contact Buttons -->
@@ -122,6 +154,26 @@
               <span class="chat-badge-dot" *ngIf="unreadStudentMessagesCount > 0">{{ unreadStudentMessagesCount }}</span>
             </button>
           </div>
+        </div>
+
+        <!-- Prominent Chat with Passenger Action Bar -->
+        <div class="driver-chat-cta-wrap">
+          <button type="button" class="btn-driver-chat-cta" (click)="openDriverChat()">
+            <div class="dcc-left">
+              <div class="dcc-icon-box">
+                <ion-icon name="chatbubble-ellipses"></ion-icon>
+                <span class="dcc-unread-dot" *ngIf="unreadStudentMessagesCount > 0"></span>
+              </div>
+              <div class="dcc-text">
+                <strong>{{ isFil ? 'I-message si ' + booking.studentName : 'Message ' + booking.studentName }}</strong>
+                <span>{{ latestPassengerMessage ? latestPassengerMessage.message : (isFil ? 'Pindutin para magpadala ng mensahe sa pasahero' : 'Tap to send a message to passenger') }}</span>
+              </div>
+            </div>
+            <div class="dcc-right">
+              <span class="dcc-badge" *ngIf="unreadStudentMessagesCount > 0">{{ unreadStudentMessagesCount }}</span>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </div>
+          </button>
         </div>
 
         <!-- Route Visual Step -->
@@ -220,8 +272,9 @@
           </div>
         </div>
 
-        <!-- MALAKI AT MALINAW NA STEP-BY-STEP ACTION BUTTON + DIRECT DROP-OFF BUTTON -->
+        <!-- STEP-BY-STEP ACTION BUTTONS (STRICT SEQUENTIAL PROGRESSION) -->
         <div class="abh-cta-wrap">
+          <!-- Stage 1 Button: Head to Pickup (When Accepted) -->
           <button 
             *ngIf="booking.status === 'accepted'" 
             type="button"
@@ -229,13 +282,14 @@
             (click)="advanceBookingStatus(booking, 'driver_arriving')">
             <ion-icon name="navigate-outline"></ion-icon>
             <div class="btp-text">
-              <strong>{{ isFil ? 'PUMUNTA NA SA PICKUP POINT' : 'HEAD TO PICKUP POINT' }}</strong>
+              <strong>{{ isFil ? 'PUMUNTA NA SA SAKAYAN (PAPARATING)' : 'HEAD TO PICKUP POINT' }}</strong>
               <span>{{ isFil ? 'Pindutin kapag papunta ka na sa estudyante' : 'Tap when en route to passenger' }}</span>
             </div>
           </button>
 
+          <!-- Stage 2 Button: Arrived at Pickup (When Arriving or Accepted) -->
           <button 
-            *ngIf="booking.status === 'driver_arriving'" 
+            *ngIf="booking.status === 'driver_arriving' || booking.status === 'accepted'" 
             type="button"
             class="btn-trip-progress btn-step-green"
             (click)="advanceBookingStatus(booking, 'driver_arrived')">
@@ -246,6 +300,7 @@
             </div>
           </button>
 
+          <!-- Stage 3 Yellow Button: Passenger Boarded -> ON TRIP! (When Arrived) -->
           <button 
             *ngIf="booking.status === 'driver_arrived'" 
             type="button"
@@ -253,21 +308,35 @@
             (click)="advanceBookingStatus(booking, 'in_progress')">
             <ion-icon name="play-outline"></ion-icon>
             <div class="btp-text">
-              <strong>{{ isFil ? 'NAKASAKAY NA • SIMULAN ANG BIYAHE' : 'PASSENGER BOARDED • START TRIP' }}</strong>
-              <span>{{ isFil ? 'Pindutin kapag sumakay na at bibiyahe na kayo' : 'Tap once passenger is aboard to begin trip' }}</span>
+              <strong>{{ isFil ? 'NAKASAKAY NA ANG PASAHERO • SIMULAN ANG BIYAHE (ON TRIP)' : 'PASSENGER BOARDED • START TRIP (ON TRIP)' }}</strong>
+              <span>{{ isFil ? 'Pindutin kapag sumakay na si ' + booking.studentName + ' at bibiyahe na' : 'Tap once passenger is aboard to begin trip' }}</span>
             </div>
           </button>
 
-          <!-- Direct Drop-Off / Complete Trip Button (Available anytime during the trip so driver can mark dropped off immediately) -->
+          <!-- Stage 4 Drop-Off Button: Dropped Off / Nahatid na (When In Progress / On Trip) -->
           <button 
+            *ngIf="booking.status === 'in_progress'"
             type="button"
             class="btn-trip-progress btn-step-complete"
-            [style.marginTop.px]="booking.status !== 'in_progress' ? 10 : 0"
             (click)="dropOffBookingAction(booking)">
             <ion-icon name="checkmark-done-outline"></ion-icon>
             <div class="btp-text">
               <strong>{{ isFil ? 'NAIBABA / NAHATID NA SI ' + ((booking.studentName || 'PASAHERO') | uppercase) + ' (DROP OFF)' : 'DROP OFF ' + ((booking.studentName || 'PASSENGER') | uppercase) + ' (COMPLETE TRIP)' }}</strong>
-              <span>{{ isFil ? 'Singilin: ₱' + (booking.fareAmount || ((booking.passengerCount || 1) * 10)) + '.00 • Balik sa 4/4 Available na Upuan' : 'Collect: ₱' + (booking.fareAmount || ((booking.passengerCount || 1) * 10)) + '.00 • Reset to 4/4 Open Seats' }}</span>
+              <span>{{ isFil ? 'Singilin: ₱' + (booking.fareAmount || ((booking.passengerCount || 1) * 10)) + '.00 • Tapusin ang Biyahe' : 'Collect: ₱' + (booking.fareAmount || ((booking.passengerCount || 1) * 10)) + '.00 • Complete Trip' }}</span>
+            </div>
+          </button>
+
+          <!-- Fallback direct drop off option for driver_arrived in case of passenger no-show / manual finish -->
+          <button 
+            *ngIf="booking.status === 'driver_arrived'"
+            type="button"
+            class="btn-trip-progress btn-step-complete"
+            style="margin-top: 8px; opacity: 0.85;"
+            (click)="dropOffBookingAction(booking)">
+            <ion-icon name="checkmark-done-outline"></ion-icon>
+            <div class="btp-text">
+              <strong>{{ isFil ? 'TAPUSIN / NAHATID NA (DROP OFF)' : 'COMPLETE / DROP OFF' }}</strong>
+              <span>{{ isFil ? 'Tapusin agad ang biyahe kung nakababa na' : 'Finish ride immediately' }}</span>
             </div>
           </button>
         </div>
@@ -991,9 +1060,8 @@
   </div>
 
   <!-- ==================== DRIVER MESSENGER / CHAT MODAL ==================== -->
-  <ion-modal [isOpen]="isDriverChatOpen" (didDismiss)="closeDriverChat()" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1]">
-    <ng-template>
-      <div class="driver-chat-modal-wrap" *ngIf="myActiveBooking as booking">
+  <div *ngIf="isDriverChatOpen && myActiveBooking as booking" class="driver-chat-overlay-backdrop" (click)="closeDriverChat()">
+    <div class="driver-chat-modal-wrap" (click)="$event.stopPropagation()">
         <!-- Chat Header -->
         <div class="dcm-header">
           <div class="dcm-user-info">
@@ -1062,9 +1130,8 @@
             <ion-icon name="send"></ion-icon>
           </button>
         </div>
-      </div>
-    </ng-template>
-  </ion-modal>
+    </div>
+  </div>
 
   <!-- ==================== 5-ITEM DRIVER BOTTOM NAVIGATION BAR ==================== -->
   <div class="bottom-nav-bar">

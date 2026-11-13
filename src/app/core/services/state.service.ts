@@ -46,6 +46,7 @@ interface AppStateData {
   farePerHead?: number;
 }
 
+
 @Injectable({
   providedIn: 'root'
 })
@@ -430,7 +431,10 @@ export class StateService {
           const sbRank = this.getBookingStatusRank(sb.status);
           const localRank = this.getBookingStatusRank(local.status);
 
-          if (sbTime > localTime || (sbTime === localTime && sbRank > localRank) || (local.status === 'searching' && sb.status !== 'searching')) {
+          // Never let an older 'searching' state from storage downgrade an active trip!
+          if (localRank > sbRank) {
+            hasChanges = true;
+          } else if (sbRank > localRank || (sbRank === localRank && sbTime > localTime)) {
             mergedMap.set(sb.id, sb);
             hasChanges = true;
           }
@@ -459,8 +463,6 @@ export class StateService {
   }
 
   private saveState(): void {
-    // Merge any newer bookings from storage before saving so background GPS ticks never clobber new bookings
-    this.syncBookingsFromStorage();
     const state = this.getStateSnapshot();
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
@@ -648,7 +650,28 @@ export class StateService {
     if (state.announcements) this.announcementsSubject.next(state.announcements);
     if (state.notifications) this.notificationsSubject.next(state.notifications);
     if (state.designatedZones) this.designatedZonesSubject.next(state.designatedZones);
-    if (state.bookings) this.bookingsSubject.next(state.bookings);
+    if (state.bookings) {
+      // Merge bookings safely so active trips (accepted/in_progress) never get downgraded to searching
+      const current = [...this.bookingsSubject.value];
+      const mergedMap = new Map<string, BookingRequest>();
+      for (const b of current) {
+        mergedMap.set(b.id, b);
+      }
+      for (const inc of state.bookings) {
+        const local = mergedMap.get(inc.id) || Array.from(mergedMap.values()).find(b => b.bookingNumber && b.bookingNumber === inc.bookingNumber);
+        if (!local) {
+          mergedMap.set(inc.id, inc);
+        } else {
+          const localRank = this.getBookingStatusRank(local.status);
+          const incRank = this.getBookingStatusRank(inc.status);
+          if (incRank > localRank || (incRank === localRank && new Date(inc.updatedAt || 0).getTime() >= new Date(local.updatedAt || 0).getTime())) {
+            mergedMap.set(local.id, { ...local, ...inc });
+          }
+        }
+      }
+      const uniqueList = Array.from(new Set(mergedMap.values()));
+      this.bookingsSubject.next(uniqueList);
+    }
     if (typeof state.farePerHead === 'number') this.farePerHeadSubject.next(state.farePerHead);
     if (shouldSave) {
       this.saveState();
@@ -1822,10 +1845,20 @@ export class StateService {
   }
 
   public getActiveBookingForStudent(studentId: string): BookingRequest | undefined {
-    return this.bookingsSubject.value.find(
-      b => (b.studentId === studentId || b.studentId === 'student-001') &&
-           b.status !== 'completed' && b.status !== 'cancelled'
+    const list = this.bookingsSubject.value.filter(
+      b => b.status !== 'completed' && b.status !== 'cancelled'
     );
+    const userBookings = list.filter(b =>
+      !studentId || studentId === 'student-001'
+        ? (b.studentId === 'student-001' || !b.studentId)
+        : (b.studentId === studentId || b.studentId === 'student-001')
+    );
+    if (userBookings.length === 0) return undefined;
+
+    // Prioritize active in-flight trip (accepted, driver_arriving, driver_arrived, in_progress)
+    // over any stale searching request so passenger screen immediately transitions!
+    userBookings.sort((a, b) => this.getBookingStatusRank(b.status) - this.getBookingStatusRank(a.status));
+    return userBookings[0];
   }
 
   public getActiveBookingForDriver(driverId: string, bikeNumber?: string): BookingRequest | undefined {
@@ -2294,9 +2327,13 @@ export class StateService {
   /**
    * Advances trip status: accepted -> driver_arriving -> driver_arrived -> in_progress -> completed
    */
-  public updateBookingStatus(bookingId: string, newStatus: BookingStatus): void {
+  public updateBookingStatus(bookingId: string, newStatus: BookingStatus, bookingNumber?: string): void {
     const bookings = [...this.bookingsSubject.value];
-    const idx = bookings.findIndex(b => b.id === bookingId);
+    const idx = bookings.findIndex(
+      b => b.id === bookingId ||
+           (bookingNumber && b.bookingNumber === bookingNumber) ||
+           (b.bookingNumber && b.bookingNumber === bookingId)
+    );
     if (idx === -1) return;
 
     const booking = { ...bookings[idx] };
@@ -2565,11 +2602,13 @@ export class StateService {
               // Reached student pickup location along road network
               b.currentLocation.lat = booking.pickupLat;
               b.currentLocation.lng = booking.pickupLng;
-              if (booking.status === 'driver_arriving' || booking.status === 'accepted') {
-                booking.status = 'driver_arrived';
-                booking.distanceMeters = 0;
-                booking.estimatedMinutes = 0;
-                bookingsChanged = true;
+              if (!this.remoteBookingIds.has(booking.id)) {
+                if (booking.status === 'driver_arriving' || booking.status === 'accepted') {
+                  booking.status = 'driver_arrived';
+                  booking.distanceMeters = 0;
+                  booking.estimatedMinutes = 0;
+                  bookingsChanged = true;
+                }
               }
               this.activeRouteWaypoints.delete(routeKey);
               updated = true;
@@ -2748,7 +2787,10 @@ export class StateService {
 
     const current = [...this.bookingsSubject.getValue()];
     const existingIdx = current.findIndex(
-      b => b.id === remoteBooking.id || (replaceBookingId ? b.id === replaceBookingId : false)
+      b => b.id === remoteBooking.id ||
+           (replaceBookingId ? b.id === replaceBookingId : false) ||
+           (remoteBooking.bookingNumber ? b.bookingNumber === remoteBooking.bookingNumber : false) ||
+           (remoteBooking.studentId ? (b.studentId === remoteBooking.studentId && b.status === 'searching') : false)
     );
 
     const prevStatus = existingIdx > -1 ? current[existingIdx].status : undefined;
@@ -2767,14 +2809,22 @@ export class StateService {
       current[existingIdx] = {
         ...existing,
         ...remoteBooking,
-        id: remoteBooking.id,
+        id: existing.id || remoteBooking.id,
+        bookingNumber: remoteBooking.bookingNumber || existing.bookingNumber,
+        status: (remoteBooking.status as BookingStatus) || existing.status,
+        assignedDriverId: remoteBooking.assignedDriverId ?? existing.assignedDriverId,
+        assignedDriverName: remoteBooking.assignedDriverName ?? existing.assignedDriverName,
+        assignedDriverPhone: remoteBooking.assignedDriverPhone ?? existing.assignedDriverPhone,
+        assignedDriverPhoto: remoteBooking.assignedDriverPhoto ?? existing.assignedDriverPhoto,
+        assignedBikeNumber: remoteBooking.assignedBikeNumber ?? existing.assignedBikeNumber,
         pickupLat: Number(remoteBooking.pickupLat ?? existing.pickupLat),
         pickupLng: Number(remoteBooking.pickupLng ?? existing.pickupLng),
         destinationLat: Number(remoteBooking.destinationLat ?? existing.destinationLat),
         destinationLng: Number(remoteBooking.destinationLng ?? existing.destinationLng),
         distanceMeters: Number(remoteBooking.distanceMeters ?? existing.distanceMeters),
         estimatedMinutes: Number(remoteBooking.estimatedMinutes ?? existing.estimatedMinutes),
-        fareAmount: Number(remoteBooking.fareAmount ?? existing.fareAmount)
+        fareAmount: Number(remoteBooking.fareAmount ?? existing.fareAmount),
+        updatedAt: remoteBooking.updatedAt || new Date().toISOString()
       };
     } else {
       const normalized: BookingRequest = {
@@ -2799,18 +2849,41 @@ export class StateService {
         assignedDriverId: remoteBooking.assignedDriverId,
         assignedDriverName: remoteBooking.assignedDriverName,
         assignedDriverPhone: remoteBooking.assignedDriverPhone,
+        assignedDriverPhoto: remoteBooking.assignedDriverPhoto,
         assignedBikeNumber: remoteBooking.assignedBikeNumber,
         targetDriverId: remoteBooking.targetDriverId,
         requestExpiresAt: remoteBooking.requestExpiresAt,
         createdAt: remoteBooking.createdAt || new Date().toISOString(),
         updatedAt: remoteBooking.updatedAt || new Date().toISOString()
       };
+      // Clean up any stale searching booking for this student
+      const staleIdx = current.findIndex(
+        b => remoteBooking.studentId && b.studentId === remoteBooking.studentId && b.status === 'searching'
+      );
+      if (staleIdx > -1) {
+        current.splice(staleIdx, 1);
+      }
       current.unshift(normalized);
     }
 
     const merged = existingIdx > -1 ? current[existingIdx] : current[0];
+
+    // If this booking is accepted or in-progress, purge any duplicate/stale 'searching' booking
+    // for this student so the UI immediately switches to the accepted ride
+    if (merged.status !== 'searching' && merged.status !== 'cancelled' && merged.status !== 'completed') {
+      for (let i = current.length - 1; i >= 0; i--) {
+        const item = current[i];
+        if (item.id !== merged.id && (item.studentId === merged.studentId || item.bookingNumber === merged.bookingNumber)) {
+          if (item.status === 'searching' || item.status === 'pending') {
+            current.splice(i, 1);
+          }
+        }
+      }
+    }
+
     this.bookingsSubject.next(current);
     this.saveState();
+    this.broadcastUpdate();
 
     // Sync seat count on the assigned pedicab when a remote driver accepts or finishes
     if (merged.assignedBikeNumber && prevStatus !== merged.status) {

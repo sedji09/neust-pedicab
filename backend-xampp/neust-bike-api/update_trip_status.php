@@ -14,6 +14,7 @@ if (!$data) {
 }
 
 $bookingUid = trim($data['bookingId'] ?? '');
+$bookingNumber = trim($data['bookingNumber'] ?? '');
 $newStatus = trim($data['status'] ?? ''); // 'driver_arriving', 'driver_arrived', 'in_progress', 'completed', 'cancelled'
 
 $validStatuses = ['driver_arriving', 'driver_arrived', 'in_progress', 'completed', 'cancelled'];
@@ -22,8 +23,9 @@ if (!in_array($newStatus, $validStatuses)) {
     exit();
 }
 
-$stmt = $pdo->prepare("SELECT * FROM bookings WHERE booking_uid = ? LIMIT 1");
-$stmt->execute([$bookingUid]);
+// Find booking by UID or Booking Number
+$stmt = $pdo->prepare("SELECT * FROM bookings WHERE booking_uid = ? OR booking_number = ? OR booking_uid = ? OR booking_number = ? LIMIT 1");
+$stmt->execute([$bookingUid, $bookingUid, $bookingNumber, $bookingNumber]);
 $booking = $stmt->fetch();
 
 if (!$booking) {
@@ -31,8 +33,9 @@ if (!$booking) {
     exit();
 }
 
-$upd = $pdo->prepare("UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE booking_uid = ?");
-$upd->execute([$newStatus, $bookingUid]);
+// Update status by primary key ID for 100% precision
+$upd = $pdo->prepare("UPDATE bookings SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+$upd->execute([$newStatus, $booking['id']]);
 
 // If completed, record into trips table and free up bicycle
 if ($newStatus === 'completed') {
@@ -50,7 +53,7 @@ if ($newStatus === 'completed') {
         $booking['distance_meters']
     ]);
 
-    // Reset bicycle
+    // Reset bicycle to available
     if ($booking['assigned_bike_number']) {
         $bikeStmt = $pdo->prepare("UPDATE bicycles SET status = 'available', passenger_count = 0 WHERE bike_number = ?");
         $bikeStmt->execute([$booking['assigned_bike_number']]);
@@ -60,6 +63,7 @@ if ($newStatus === 'completed') {
 echo json_encode([
     'success' => true,
     'message' => 'Booking status updated to: ' . $newStatus,
-    'status' => $newStatus
+    'status' => $newStatus,
+    'bookingNumber' => $booking['booking_number'],
+    'bookingId' => $booking['booking_uid']
 ]);
-

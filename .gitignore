@@ -75,3 +75,7 @@ complete_original_home_tab.html
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Large Media Files (>100MB GitHub limit)
+System Video/
+*.mp4

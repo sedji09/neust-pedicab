@@ -34,16 +34,17 @@ if ($action === 'accept') {
             assigned_driver_name = ?,
             assigned_driver_phone = ?,
             assigned_bike_number = ?,
-            target_driver_id = NULL
-        WHERE booking_uid = ? AND status = 'searching'
+            target_driver_id = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE (booking_uid = ? OR booking_number = ?) AND status = 'searching'
     ");
-    $stmt->execute([$driverId, $driverName, $driverPhone, $bikeNumber, $bookingUid]);
+    $stmt->execute([$driverId, $driverName, $driverPhone, $bikeNumber, $bookingUid, $bookingUid]);
     $affected = $stmt->rowCount();
 
     if ($affected > 0) {
         // Fetch booking passenger count to deduct seats on winning pedicab
-        $bkStmt = $pdo->prepare("SELECT fare_amount FROM bookings WHERE booking_uid = ? LIMIT 1");
-        $bkStmt->execute([$bookingUid]);
+        $bkStmt = $pdo->prepare("SELECT fare_amount FROM bookings WHERE (booking_uid = ? OR booking_number = ?) LIMIT 1");
+        $bkStmt->execute([$bookingUid, $bookingUid]);
         $bkRow = $bkStmt->fetch();
         $paxBooked = max(1, min(4, intval(round(($bkRow['fare_amount'] ?? 10) / 10))));
 

@@ -960,6 +960,77 @@
     }
   }
 
+  .driver-stepper {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 8px 0 12px;
+
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+
+      .step-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        color: #94a3b8;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      span {
+        font-size: 9px;
+        font-weight: 600;
+        color: #94a3b8;
+      }
+
+      &.step-active {
+        .step-dot {
+          background: #1d3698;
+          color: #ffffff;
+          box-shadow: 0 0 0 3px rgba(29, 54, 152, 0.25);
+        }
+        span {
+          color: #1d3698;
+          font-weight: 700;
+        }
+      }
+
+      &.step-done {
+        .step-dot {
+          background: #10b981;
+          color: #ffffff;
+        }
+        span {
+          color: #10b981;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .step-line {
+      flex: 1;
+      height: 2px;
+      background: #e2e8f0;
+      margin: 0 4px 14px;
+
+      &.line-done {
+        background: #10b981;
+      }
+    }
+  }
+
   .abh-passenger-row {
     display: flex;
     align-items: center;
@@ -1238,20 +1309,26 @@
 
       &.btn-step-blue {
         background: linear-gradient(135deg, #1d3698 0%, #2563eb 100%);
+        border: 2px solid #93c5fd;
       }
 
       &.btn-step-green {
-        background: linear-gradient(135deg, #1e40af 0%, #1d3698 100%);
+        background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        border: 2px solid #86efac;
       }
 
       &.btn-step-amber {
-        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-        border-color: #fde68a;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border: 2px solid #fef08a;
+        color: #ffffff;
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
       }
 
       &.btn-step-complete {
-        background: linear-gradient(135deg, #1d3698 0%, #0f172a 100%);
-        border: 2px solid #fde047;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        border: 2px solid #a7f3d0;
+        color: #ffffff;
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
       }
     }
   }
@@ -2225,10 +2302,125 @@
    11. DRIVER MESSENGER / CHAT MODAL
    ============================================================== */
 
+.driver-chat-cta-wrap {
+  margin: 0 0 14px 0;
+
+  .btn-driver-chat-cta {
+    width: 100%;
+    background: linear-gradient(135deg, #1d3698 0%, #2563eb 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(29, 54, 152, 0.22);
+    text-align: left;
+
+    .dcc-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+
+      .dcc-icon-box {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        position: relative;
+        flex-shrink: 0;
+
+        .dcc-unread-dot {
+          position: absolute;
+          top: -3px;
+          right: -3px;
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #ef4444;
+          border: 2px solid #1d3698;
+        }
+      }
+
+      .dcc-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+
+        strong {
+          font-size: 13px;
+          font-weight: 800;
+          color: #ffffff;
+        }
+
+        span {
+          font-size: 11.5px;
+          color: #dbeafe;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    .dcc-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+
+      .dcc-badge {
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      ion-icon {
+        font-size: 18px;
+        color: #bfdbfe;
+      }
+    }
+  }
+}
+
+.driver-chat-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
 .driver-chat-modal-wrap {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 85vh;
+  max-height: 85vh;
+  border-radius: 22px 22px 0 0;
+  overflow: hidden;
+  box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.25);
   background: #f8fafc;
 
   .dcm-header {

@@ -198,3 +198,19 @@ VALUES
 ON DUPLICATE KEY UPDATE `location_name` = VALUES(`location_name`);
 
 
+
+-- 8. CROSS-DEVICE CHAT MESSAGES TABLE (Real-time Passenger <-> Driver Messaging)
+CREATE TABLE IF NOT EXISTS `chat_messages` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `booking_id` VARCHAR(60) NOT NULL,
+  `booking_number` VARCHAR(30) DEFAULT NULL,
+  `sender_id` VARCHAR(60) NOT NULL,
+  `sender_name` VARCHAR(150) NOT NULL,
+  `sender_role` ENUM('student', 'driver') NOT NULL,
+  `message` TEXT NOT NULL,
+  `is_read` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (`booking_id`),
+  INDEX (`booking_number`),
+  INDEX (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
